@@ -5,15 +5,15 @@
   <title>Eurojackpot Analyse & Varianten-Tool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- JSZip für das Entpacken der Lotto-Bayern-ZIP -->
+  <!-- JSZip wird bei Bedarf dynamisch nachgeladen; dieses Script ist nur ein Fallback -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <style>
     :root{
-      --bg:#020617;--bg2:#0b1120;--bg3:#020617;
-      --card:#020617;--border:#1f2937;--accent:#3b82f6;
-      --accent-soft:rgba(59,130,246,.15);--txt:#e5e7eb;
-      --muted:#9ca3af;--soft:#6b7280;--danger:#ef4444;--ok:#22c55e;--warn:#facc15;
+      --bg:#020617;--bg2:#0b1120;--card:#020617;
+      --border:#1f2937;--accent:#3b82f6;--accent-soft:rgba(59,130,246,.15);
+      --txt:#e5e7eb;--muted:#9ca3af;--soft:#6b7280;
+      --danger:#ef4444;--ok:#22c55e;--warn:#facc15;
       --r-lg:18px;--r-md:12px;--r-pill:999px;
     }
     *{box-sizing:border-box}
@@ -109,15 +109,13 @@
       <div class="card">
         <h2>Kurzanleitung</h2>
         <p>
-          Dieses Tool kann das Eurojackpot-Archiv auf drei Arten laden:
-          <br>1️⃣ Automatisch: lokale Datei <code>eurojackpot 3.txt</code> (wenn sie neben der index.html liegt)
-          <br>2️⃣ Per Knopf: ZIP direkt von Lotto-Bayern (wird im Browser entpackt)
-          <br>3️⃣ Manuell: ZIP oder TXT/CSV über „Datei auswählen“
+          Dieses Tool lädt das Eurojackpot-Archiv direkt vom offiziellen URL
+          (ZIP von Lotto-Bayern) – über mehrere Proxys – entpackt es,
+          analysiert es und erzeugt darauf basierend Varianten.
         </p>
         <div class="note">
-          Empfehlung für GitHub Pages / Webspace:<br>
-          Lege <strong>index.html</strong> und <strong>eurojackpot 3.txt</strong> in das gleiche Verzeichnis.
-          Die Datei wird dann automatisch geladen – ohne Klick und ohne Proxy.
+          Falls der direkte Download von deinem Browser blockiert wird
+          (CORS), versucht das Tool automatisch mehrere Fallback-Proxys.
         </div>
         <div class="risk">
           ⚠️ <strong>Wichtig:</strong> Jede Zahlenkombination ist mathematisch gleich wahrscheinlich.
@@ -133,32 +131,28 @@
           <div class="card-header">
             <div>
               <h2>Archiv laden</h2>
-              <div class="sub">Lotto-Bayern-Archiv oder eigene Datei verwenden.</div>
+              <div class="sub">ZIP von Lotto-Bayern, automatisch entpackt und eingelesen.</div>
             </div>
             <span class="chip">Quelle: Lotto-Bayern</span>
           </div>
           <div class="row">
             <div class="group">
-              <label>1. Automatisch (empfohlen)</label>
-              <button class="btn btn-sm" id="btnAutoLocal">Lokale Datei „eurojackpot 3.txt“ laden</button>
+              <label>Automatisch vom offiziellen Link</label>
+              <button class="btn btn-sm" id="btnLoadRemote">📥 Archiv herunterladen &amp; entpacken</button>
               <div class="note">
-                Funktioniert, wenn die Datei <code>eurojackpot 3.txt</code> im gleichen Ordner liegt wie diese index.html.
-              </div>
-            </div>
-            <div class="group">
-              <label>2. Direkt von Lotto-Bayern (ZIP)</label>
-              <button class="btn btn-sm btn-outline" id="btnLoadRemote">ZIP herunterladen &amp; entpacken</button>
-              <div class="note">
-                URL: <code style="font-size:10px">https://www.lotto-bayern.de/.../archiv_eurojackpot.zip</code><br>
-                Falls der Browser wegen CORS blockiert, nutze Variante 1 oder 3.
+                URL: <code style="font-size:10px">https://www.lotto-bayern.de/static/gamebroker_2/de/download_files/archiv_eurojackpot.zip</code><br>
+                Es werden nacheinander mehrere CORS-Proxys ausprobiert, bis eine Variante funktioniert.
               </div>
             </div>
           </div>
           <div class="row">
             <div class="group">
-              <label>3. Datei manuell auswählen</label>
-              <input id="fileInput" type="file" accept=".txt,.csv,.zip">
-              <div class="note">Unterstützt TXT/CSV im Format „Tag Monat Jahr ZahlA1 … ZahlB2“ sowie die originale ZIP von Lotto-Bayern.</div>
+              <label>Datei alternativ manuell auswählen (ZIP/TXT/CSV)</label>
+              <input id="fileInput" type="file" accept=".zip,.txt,.csv">
+              <div class="note">
+                Wenn der Browser gar nichts zulässt: ZIP von Lotto-Bayern manuell speichern und hier auswählen
+                – oder die entpackte TXT/CSV.
+              </div>
             </div>
           </div>
           <div id="archiveStatus" class="status">Noch keine Daten geladen.</div>
@@ -207,7 +201,7 @@
               <tbody id="rangeBody"></tbody>
             </table>
           </div>
-          <div class="note">Hot = oberste 20&nbsp;%, Cold = unterste 20&nbsp;% im gewählten Zeitraum.</div>
+          <div class="note">Bereiche: 1–10, 11–20, 21–30, 31–40, 41–50.</div>
         </div>
       </div>
 
@@ -273,7 +267,7 @@
             <button class="btn btn-sm btn-outline" id="btnExportTxt">Als TXT exportieren</button>
             <button class="btn btn-sm btn-outline" id="btnExportCsv">Als CSV exportieren</button>
           </div>
-          <div class="note">Gewichtungen ändern die Auswahl-Verteilung, aber nicht die mathemische Ziehungswahrscheinlichkeit.</div>
+          <div class="note">Gewichtungen verändern die Auswahlverteilung, aber nicht die mathematische Ziehungswahrscheinlichkeit.</div>
         </div>
 
         <!-- ANALYSE -->
@@ -349,136 +343,150 @@
   const ARCHIVE_URL = "https://www.lotto-bayern.de/static/gamebroker_2/de/download_files/archiv_eurojackpot.zip";
 
   const app = {
-    draws: [],   // {date: Date|null, main:[5], euro:[2]}
+    draws: [],   // {date: "YYYY-MM-DD", main:[5], euro:[2]}
     generated: [],
     stats: null
   };
 
   const el = id => document.getElementById(id);
 
-  function setArchiveStatus(msg,type){
-    const n = el("archiveStatus");
+  function setStatus(targetId,msg,type,loading){
+    const n = el(targetId);
+    if(!n) return;
     const cls = type==="ok"?"ok":type==="err"?"err":type==="warn"?"warn":"";
     const icon = type==="ok"?"✅":type==="err"?"❌":type==="warn"?"⚠️":"ℹ️";
-    n.innerHTML = `<span class="${cls}">${icon} ${msg}</span>`;
-  }
-  function setStatsStatus(msg,type){
-    const n = el("statsStatus");
-    const cls = type==="ok"?"ok":type==="err"?"err":"";
-    const icon = type==="ok"?"✅":type==="err"?"❌":"ℹ️";
-    n.innerHTML = `<span class="${cls}">${icon} ${msg}</span>`;
-  }
-  function setGenStatus(msg,type,loading){
-    const n = el("genStatus");
-    const cls = type==="ok"?"ok":type==="err"?"err":"";
-    const icon = type==="ok"?"✅":type==="err"?"❌":"ℹ️";
-    n.innerHTML = (loading?'<span class="loader"></span>':'')+`<span class="${cls}">${icon} ${msg}</span>`;
-  }
-  function setAnalysisStatus(msg,type,loading){
-    const n = el("analysisStatus");
-    const cls = type==="ok"?"ok":type==="err"?"err":"";
-    const icon = type==="ok"?"✅":type==="err"?"❌":"ℹ️";
     n.innerHTML = (loading?'<span class="loader"></span>':'')+`<span class="${cls}">${icon} ${msg}</span>`;
   }
 
-  // ---- Parsing der TXT/CSV ----
-  function parseArchiveText(text){
-    const lines = text.split(/\\r?\\n/).filter(l=>l.trim().length>0);
-    const out = [];
-    for(const raw of lines){
-      const line = raw.trim();
-      if(!line) continue;
-      if(/Tag\\s+Monat\\s+Jahr/i.test(line) || /ZahlA1/i.test(line)) continue;
+  /* ===== JSZip & Proxy-Download ========================================= */
 
-      const numsStr = line.match(/\\d+/g);
-      if(!numsStr || numsStr.length<7) continue;
-      const nums = numsStr.map(Number);
-
-      // Format: Tag Monat Jahr ZahlA1 … ZahlA5 ZahlB1 ZahlB2
-      // -> wir verwenden IMMER die letzten 7 Zahlen (5 Hauptzahlen + 2 Eurozahlen)
-      const arr = nums.slice(-7);
-      if(arr.length<7) continue;
-      const main = arr.slice(0,5);
-      const euro = arr.slice(5,7);
-
-      if(!main.every(n=>n>=1 && n<=50)) continue;
-      if(!euro.every(n=>n>=1 && n<=12)) continue;
-
-      main.sort((a,b)=>a-b);
-      euro.sort((a,b)=>a-b);
-
-      // Datum optional aus den ersten 3 Zahlen
-      let date = null;
-      if(nums.length>=3){
-        const [d,m,y] = nums.slice(0,3);
-        if(y>=2012 && y<=2100 && m>=1 && m<=12 && d>=1 && d<=31){
-          const dt = new Date(y,m-1,d);
-          if(!isNaN(dt.getTime())) date = dt;
-        }
-      }
-      out.push({date,main,euro});
+  async function ensureJSZip(){
+    if(window.JSZip) return true;
+    const cdns = [
+      "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
+      "https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"
+    ];
+    for(const src of cdns){
+      try{
+        await new Promise((resolve,reject)=>{
+          const s=document.createElement("script");
+          s.src=src; s.async=true;
+          s.onload=()=>resolve();
+          s.onerror=()=>reject();
+          document.head.appendChild(s);
+        });
+        if(window.JSZip) return true;
+      }catch(e){}
     }
-    if(!out.length) throw new Error("Es konnten keine Ziehungen aus der Datei gelesen werden.");
-    out.sort((a,b)=>{
-      if(!a.date && !b.date) return 0;
-      if(!a.date) return -1;
-      if(!b.date) return 1;
-      return a.date - b.date;
-    });
-    app.draws = out;
-    app.stats = null;
-    setArchiveStatus("Archiv geladen: "+out.length+" Ziehungen.", "ok");
-    setStatsStatus("Archiv geladen. Wähle einen Zeitraum und klicke auf „Statistik berechnen“.","ok");
+    return !!window.JSZip;
   }
 
-  // ---- 1. Lokale TXT automatisch laden ----
-  async function loadLocalTxt(autoMessage){
-    try{
-      const res = await fetch("eurojackpot 3.txt");
-      if(!res.ok){
-        if(autoMessage){
-          setArchiveStatus("Lokale Datei „eurojackpot 3.txt“ wurde nicht gefunden. Du kannst sie einfach neben die index.html legen.", "warn");
+  async function fetchWithProxies(url){
+    const trials = [
+      url,
+      "https://cors.isomorphic-git.org/"+url,
+      "https://api.allorigins.win/raw?url="+encodeURIComponent(url),
+      "https://thingproxy.freeboard.io/fetch/"+url,
+      "https://corsproxy.io/?"+encodeURIComponent(url)
+    ];
+    let lastErr = null;
+    for(const u of trials){
+      try{
+        const res = await fetch(u);
+        if(!res.ok) throw new Error("HTTP "+res.status);
+        const ct = (res.headers.get("content-type") || "").toLowerCase();
+        if(ct.includes("zip") || u.endsWith(".zip")){
+          const ok = await ensureJSZip();
+          if(!ok) throw new Error("JSZip konnte nicht geladen werden.");
+          const blob = await res.blob();
+          const zip = await JSZip.loadAsync(blob);
+          const entries = Object.values(zip.files);
+          let entry = entries.find(f=>/\.txt$/i.test(f.name)) || entries.find(f=>/\.csv$/i.test(f.name)) || entries[0];
+          if(!entry) throw new Error("Keine Datei im ZIP gefunden.");
+          return await entry.async("string");
         }else{
-          setArchiveStatus("Lokale Datei „eurojackpot 3.txt“ nicht gefunden (HTTP "+res.status+").","err");
+          return await res.text();
         }
-        return;
+      }catch(e){
+        lastErr = e;
       }
-      const text = await res.text();
-      parseArchiveText(text);
-      setArchiveStatus("Lokale Datei „eurojackpot 3.txt“ wurde erfolgreich geladen.", "ok");
-    }catch(e){
-      console.error(e);
-      setArchiveStatus("Automatisches Laden der lokalen Datei ist fehlgeschlagen: "+e.message,"err");
     }
+    throw lastErr || new Error("Download über alle Proxys fehlgeschlagen.");
   }
 
-  // ---- 2. ZIP von Lotto-Bayern ----
-  async function loadRemoteArchive(){
-    setArchiveStatus("Lade ZIP-Archiv von Lotto-Bayern …","info");
+  /* ===== Parsing ========================================================= */
+
+  function parseArchiveText(txt){
+    txt = txt.replace(/^\\uFEFF/,"");
+    const lines = txt.replace(/\\r\\n?/g,"\\n").split("\\n").map(l=>l.trim()).filter(Boolean);
+    const cleaned = lines.filter(l => (l.match(/\\d+/g)||[]).length >= 7);
+
+    const regDMY=/^(\\d{1,2})[.\\-/](\\d{1,2})[.\\-/](\\d{2,4})$/;
+    const regYMD=/^(\\d{4})[.\\-/](\\d{1,2})[.\\-/](\\d{1,2})$/;
+
+    function iso(y,m,d){
+      const dt = new Date(+y,+m-1,+d);
+      if(isNaN(dt.getTime())) return null;
+      return dt.toISOString().slice(0,10);
+    }
+
+    function parseLine(line){
+      const tokens = line.split(/;|,|\\t|\\s+/).filter(Boolean);
+      let date = null, rest = [];
+
+      if(tokens.length && regDMY.test(tokens[0])){
+        const m = tokens[0].match(regDMY);
+        date = iso(m[3],m[2],m[1]);
+        rest = tokens.slice(1);
+      }else if(tokens.length && regYMD.test(tokens[0])){
+        const m = tokens[0].match(regYMD);
+        date = iso(m[1],m[2],m[3]);
+        rest = tokens.slice(1);
+      }else{
+        rest = tokens.slice(0);
+      }
+
+      const nums = rest.map(Number).filter(n => !Number.isNaN(n));
+      if(!date){
+        const only = (line.match(/\\d+/g)||[]).map(Number);
+        if(only.length>=3){
+          const [a,b,c] = only.slice(0,3);
+          const d = iso(c,b,a);
+          if(d) date = d;
+        }
+      }
+      const main = nums.filter(n=>n>=1 && n<=50).slice(0,5).sort((a,b)=>a-b);
+      const euro = nums.filter(n=>n>=1 && n<=12).slice(0,2).sort((a,b)=>a-b);
+      if(!date || main.length!==5 || euro.length!==2) return null;
+      return {date,main,euro};
+    }
+
+    const draws = [];
+    cleaned.forEach(l=>{
+      const r = parseLine(l);
+      if(r) draws.push(r);
+    });
+    if(!draws.length) throw new Error("Keine gültigen Ziehungen erkannt.");
+
+    draws.sort((a,b)=>a.date.localeCompare(b.date));
+    app.draws = draws;
+    app.stats = null;
+  }
+
+  async function loadArchiveRemote(){
+    setStatus("archiveStatus","Lade Archiv (ZIP, mehrere Proxys)…","info",true);
     try{
-      if(typeof JSZip === "undefined"){
-        throw new Error("JSZip-Bibliothek konnte nicht geladen werden.");
-      }
-      const res = await fetch(ARCHIVE_URL);
-      if(!res.ok) throw new Error("HTTP "+res.status);
-      const buf = await res.arrayBuffer();
-      const zip = await JSZip.loadAsync(buf);
-
-      let chosenFile = null;
-      zip.forEach((relPath,file)=>{
-        const lower = relPath.toLowerCase();
-        if(!chosenFile && (lower.endsWith(".txt") || lower.endsWith(".csv"))) chosenFile = file;
-      });
-      if(!chosenFile) throw new Error("Keine TXT/CSV in der ZIP gefunden.");
-      const text = await chosenFile.async("string");
+      const text = await fetchWithProxies(ARCHIVE_URL);
       parseArchiveText(text);
+      setStatus("archiveStatus","Archiv geladen: "+app.draws.length+" Ziehungen.","ok");
+      setStatus("statsStatus","Archiv geladen. Wähle einen Zeitraum und klicke auf „Statistik berechnen“.","ok");
     }catch(e){
       console.error(e);
-      setArchiveStatus("Archiv konnte nicht automatisch geladen werden: "+e.message+" – du kannst die ZIP herunterladen und hier mit „Datei auswählen“ laden oder die Datei eurojackpot 3.txt neben die index.html legen.","err");
+      setStatus("archiveStatus","Archiv konnte nicht automatisch geladen werden: "+e.message,"err");
     }
   }
 
-  // ---- 3. Manuelle Datei ----
   function setupFileInput(){
     const input = el("fileInput");
     input.addEventListener("change", async ev=>{
@@ -490,32 +498,33 @@
           const text = await file.text();
           parseArchiveText(text);
         }else if(name.endsWith(".zip")){
-          if(typeof JSZip === "undefined") throw new Error("JSZip-Bibliothek fehlt.");
-          setArchiveStatus("ZIP wird entpackt …","info");
+          setStatus("archiveStatus","ZIP wird entpackt…","info",true);
+          const ok = await ensureJSZip();
+          if(!ok) throw new Error("JSZip-Bibliothek konnte nicht geladen werden.");
           const buf = await file.arrayBuffer();
           const zip = await JSZip.loadAsync(buf);
-          let chosenFile=null;
-          zip.forEach((relPath,f)=>{
-            const lower = relPath.toLowerCase();
-            if(!chosenFile && (lower.endsWith(".txt") || lower.endsWith(".csv"))) chosenFile=f;
-          });
-          if(!chosenFile) throw new Error("Keine TXT/CSV in der ZIP gefunden.");
-          const text = await chosenFile.async("string");
+          const entries = Object.values(zip.files);
+          let entry = entries.find(f=>/\\.txt$/i.test(f.name)) || entries.find(f=>/\\.csv$/i.test(f.name)) || entries[0];
+          if(!entry) throw new Error("Keine TXT/CSV in der ZIP gefunden.");
+          const text = await entry.async("string");
           parseArchiveText(text);
         }else{
           throw new Error("Dateityp nicht unterstützt.");
         }
+        setStatus("archiveStatus","Archiv geladen: "+app.draws.length+" Ziehungen.","ok");
+        setStatus("statsStatus","Archiv geladen. Wähle einen Zeitraum und klicke auf „Statistik berechnen“.","ok");
       }catch(e){
         console.error(e);
-        setArchiveStatus("Fehler beim Lesen der Datei: "+e.message,"err");
+        setStatus("archiveStatus","Fehler beim Lesen der Datei: "+e.message,"err");
       }
     });
   }
 
-  // ---- Statistik ----
+  /* ===== Statistik ======================================================= */
+
   function computeStats(){
     if(!app.draws.length){
-      setStatsStatus("Bitte zuerst das Archiv laden.","err");
+      setStatus("statsStatus","Bitte zuerst das Archiv laden.","err");
       el("statsTableWrap").style.display="none";
       el("rangeTableWrap").style.display="none";
       return;
@@ -524,27 +533,28 @@
     const subset = app.draws.slice(-Math.min(n,app.draws.length));
     const mainFreq = Array(51).fill(0);
     const ranges = [0,0,0,0,0];
-    for(const d of subset){
-      for(const m of d.main){
+    subset.forEach(d=>{
+      d.main.forEach(m=>{
         mainFreq[m]++;
         const idx = Math.floor((m-1)/10);
         ranges[idx]++;
-      }
-    }
+      });
+    });
     const totalMain = subset.length*5;
     const arr = [];
     for(let i=1;i<=50;i++) arr.push({num:i,count:mainFreq[i]});
     arr.sort((a,b)=>a.count-b.count);
-    const coldCut=Math.ceil(50*0.2), hotCut=Math.floor(50*0.8);
-    const cold=new Set(arr.slice(0,coldCut).map(x=>x.num));
-    const hot=new Set(arr.slice(hotCut).map(x=>x.num));
+    const coldCut = Math.ceil(50*0.2), hotCut = Math.floor(50*0.8);
+    const cold = new Set(arr.slice(0,coldCut).map(x=>x.num));
+    const hot  = new Set(arr.slice(hotCut).map(x=>x.num));
+
     app.stats = {mainFreq,ranges,totalMain,subset,hot,cold};
 
     const body = el("statsBody");
     body.innerHTML="";
     for(let i=1;i<=50;i++){
       const c = mainFreq[i];
-      const pct = totalMain? (c/totalMain*100):0;
+      const pct = totalMain ? (c/totalMain*100) : 0;
       let cls="",lbl="neutral";
       if(hot.has(i)){cls="hot";lbl="hot";}
       else if(cold.has(i)){cls="cold";lbl="cold";}
@@ -553,45 +563,49 @@
       body.appendChild(tr);
     }
 
+    const labels = ["1–10","11–20","21–30","31–40","41–50"];
     const rangeBody = el("rangeBody");
     rangeBody.innerHTML="";
-    const labels=["1–10","11–20","21–30","31–40","41–50"];
     const totalRange = ranges.reduce((a,b)=>a+b,0)||1;
     ranges.forEach((c,idx)=>{
-      const pct=c/totalRange*100;
-      const tr=document.createElement("tr");
-      tr.innerHTML=`<td>${labels[idx]}</td><td>${c}</td><td>${pct.toFixed(1)} %</td>`;
+      const pct = c/totalRange*100;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${labels[idx]}</td><td>${c}</td><td>${pct.toFixed(1)} %</td>`;
       rangeBody.appendChild(tr);
     });
 
     el("statsTableWrap").style.display="block";
     el("rangeTableWrap").style.display="block";
-    setStatsStatus("Statistik für die letzten "+subset.length+" Ziehungen berechnet.","ok");
+    setStatus("statsStatus","Statistik für die letzten "+subset.length+" Ziehungen berechnet.","ok");
   }
 
-  // ---- Generator ----
+  /* ===== Generator ======================================================= */
+
   function weightedPick(weights){
-    let sum=0;
-    for(let i=1;i<weights.length;i++) sum+=Math.max(0,weights[i]);
+    let sum = 0;
+    for(let i=1;i<weights.length;i++) sum += Math.max(0,weights[i]);
     if(sum<=0) return null;
-    let r=Math.random()*sum;
+    let r = Math.random()*sum;
     for(let i=1;i<weights.length;i++){
-      r-=Math.max(0,weights[i]);
+      r -= Math.max(0,weights[i]);
       if(r<=0) return i;
     }
     return null;
   }
+
   function countIntersection(a,b){
-    const s=new Set(a);let c=0;
+    const s = new Set(a); let c=0;
     for(const x of b) if(s.has(x)) c++;
     return c;
   }
+
   function variantEqual(a,b){
     if(a.main.length!==b.main.length || a.euro.length!==b.euro.length) return false;
     for(let i=0;i<a.main.length;i++) if(a.main[i]!==b.main[i]) return false;
     for(let i=0;i<a.euro.length;i++) if(a.euro[i]!==b.euro[i]) return false;
     return true;
   }
+
   function isDiverse(v,list){
     for(const o of list){
       const inter = countIntersection(v.main,o.main);
@@ -599,19 +613,20 @@
     }
     return true;
   }
+
   function ensureStatsForGen(){
     if(app.stats) return app.stats;
     if(!app.draws.length) return null;
     const subset = app.draws.slice(-Math.min(60,app.draws.length));
     const mainFreq = Array(51).fill(0);
     const ranges=[0,0,0,0,0];
-    for(const d of subset){
-      for(const m of d.main){
+    subset.forEach(d=>{
+      d.main.forEach(m=>{
         mainFreq[m]++;
-        const idx=Math.floor((m-1)/10);
+        const idx = Math.floor((m-1)/10);
         ranges[idx]++;
-      }
-    }
+      });
+    });
     const totalMain=subset.length*5;
     const arr=[];
     for(let i=1;i<=50;i++) arr.push({num:i,count:mainFreq[i]});
@@ -619,11 +634,12 @@
     const coldCut=Math.ceil(50*0.2), hotCut=Math.floor(50*0.8);
     const cold=new Set(arr.slice(0,coldCut).map(x=>x.num));
     const hot=new Set(arr.slice(hotCut).map(x=>x.num));
-    app.stats = {mainFreq,ranges,totalMain,subset,hot,cold};
+    app.stats={mainFreq,ranges,totalMain,subset,hot,cold};
     return app.stats;
   }
+
   function generateSingle(mainW,euroW,includeEuro,forceUniform){
-    const mW=mainW.slice(), eW=euroW.slice();
+    const mW = mainW.slice(), eW = euroW.slice();
     if(forceUniform){
       for(let i=1;i<mW.length;i++) mW[i]=1;
       for(let i=1;i<eW.length;i++) eW[i]=1;
@@ -637,42 +653,58 @@
     const euro=[];
     if(includeEuro){
       for(let k=0;k<2;k++){
-        const e=weightedPick(eW); if(!e) return null;
+        const e = weightedPick(eW); if(!e) return null;
         euro.push(e); eW[e]=0;
       }
       euro.sort((a,b)=>a-b);
     }
     return {main,euro};
   }
+
+  function renderGenerated(){
+    const body = el("genBody");
+    body.innerHTML="";
+    app.generated.forEach((v,idx)=>{
+      const tr = document.createElement("tr");
+      const mainHtml = v.main.map(n=>`<span class="ball">${n}</span>`).join(" ");
+      const euroHtml = v.euro && v.euro.length ? v.euro.map(n=>`<span class="ball euro">${n}</span>`).join(" ") : "–";
+      tr.innerHTML = `<td>${idx+1}</td><td><div class="balls">${mainHtml}</div></td><td><div class="balls">${euroHtml}</div></td>`;
+      body.appendChild(tr);
+    });
+    el("genTableWrap").style.display = app.generated.length?"block":"none";
+    el("genExportRow").style.display = app.generated.length?"flex":"none";
+  }
+
   function generateVariants(){
-    const count=Math.max(1,Math.min(500,Number(el("numVariants").value)||1));
-    el("numVariants").value=count;
+    const count = Math.max(1,Math.min(500,Number(el("numVariants").value)||1));
+    el("numVariants").value = count;
     if(!app.draws.length){
-      setGenStatus("Bitte zuerst das Archiv laden.","err");
+      setStatus("genStatus","Bitte zuerst das Archiv laden.","err");
       return;
     }
-    const includeEuro=el("genIncludeEuro").checked;
-    const useStats=el("genUseStats").checked;
-    const noDup=el("genNoDup").checked;
-    const maxDiff=el("genMaxDiff").checked;
-    setGenStatus("Varianten werden generiert …","info",true);
+    const includeEuro = el("genIncludeEuro").checked;
+    const useStats    = el("genUseStats").checked;
+    const noDup       = el("genNoDup").checked;
+    const maxDiff     = el("genMaxDiff").checked;
+
+    setStatus("genStatus","Varianten werden generiert…","info",true);
 
     const stats = useStats ? ensureStatsForGen() : null;
-    const mainW=Array(51).fill(1);
-    const euroW=Array(13).fill(1);
+    const mainW = Array(51).fill(1);
+    const euroW = Array(13).fill(1);
     if(stats && useStats){
       const totalRange = stats.ranges.reduce((a,b)=>a+b,0)||1;
       for(let n=1;n<=50;n++){
         if(stats.hot.has(n)) mainW[n]*=1.5;
         if(stats.cold.has(n)) mainW[n]*=0.7;
-        const idx=Math.floor((n-1)/10);
-        const share=stats.ranges[idx]/totalRange;
+        const idx = Math.floor((n-1)/10);
+        const share = stats.ranges[idx]/totalRange;
         mainW[n]*=0.5+share*1.5;
       }
     }
 
-    const variants=[];
-    const maxAttempts=40;
+    const variants = [];
+    const maxAttempts = 40;
     for(let i=0;i<count;i++){
       let v=null, tries=0;
       while(!v && tries<maxAttempts){
@@ -682,63 +714,56 @@
         if(noDup && variants.some(o=>variantEqual(o,v))){v=null;continue;}
         if(maxDiff && !isDiverse(v,variants)){v=null;continue;}
       }
-      if(!v) v=generateSingle(mainW,euroW,includeEuro,true);
+      if(!v) v = generateSingle(mainW,euroW,includeEuro,true);
       variants.push(v);
     }
-    app.generated=variants;
+    app.generated = variants;
     renderGenerated();
-    setGenStatus("Es wurden "+variants.length+" Varianten erzeugt.","ok");
+    setStatus("genStatus","Es wurden "+variants.length+" Varianten erzeugt.","ok");
   }
-  function renderGenerated(){
-    const body=el("genBody"); body.innerHTML="";
-    app.generated.forEach((v,idx)=>{
-      const tr=document.createElement("tr");
-      const mainHtml=v.main.map(n=>`<span class="ball">${n}</span>`).join(" ");
-      const euroHtml=v.euro && v.euro.length?v.euro.map(n=>`<span class="ball euro">${n}</span>`).join(" "):"–";
-      tr.innerHTML=`<td>${idx+1}</td><td><div class="balls">${mainHtml}</div></td><td><div class="balls">${euroHtml}</div></td>`;
-      body.appendChild(tr);
-    });
-    el("genTableWrap").style.display=app.generated.length?"block":"none";
-    el("genExportRow").style.display=app.generated.length?"flex":"none";
-  }
+
   function exportVariants(type){
     if(!app.generated.length) return;
     if(type==="txt"){
-      const lines=app.generated.map(v=>{
-        const main=v.main.join(" ");
-        const euro=v.euro && v.euro.length?" | "+v.euro.join(" "):"";
+      const lines = app.generated.map(v=>{
+        const main = v.main.join(" ");
+        const euro = v.euro && v.euro.length ? " | "+v.euro.join(" ") : "";
         return main+euro;
       });
-      const blob=new Blob([lines.join("\\n")],{type:"text/plain;charset=utf-8"});
+      const blob = new Blob([lines.join("\\n")],{type:"text/plain;charset=utf-8"});
       triggerDownload(blob,"eurojackpot_varianten.txt");
     }else{
-      const lines=["Z1;Z2;Z3;Z4;Z5;E1;E2"];
+      const lines = ["Z1;Z2;Z3;Z4;Z5;E1;E2"];
       app.generated.forEach(v=>{
         const arr=[...v.main];
         if(v.euro && v.euro.length) arr.push(...v.euro); else arr.push("","");
         lines.push(arr.join(";"));
       });
-      const blob=new Blob([lines.join("\\n")],{type:"text/csv;charset=utf-8"});
+      const blob = new Blob([lines.join("\\n")],{type:"text/csv;charset=utf-8"});
       triggerDownload(blob,"eurojackpot_varianten.csv");
     }
   }
+
   function triggerDownload(blob,name){
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");
-    a.href=url;a.download=name;document.body.appendChild(a);a.click();
-    document.body.removeChild(a);URL.revokeObjectURL(url);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href=url; a.download=name;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
-  // ---- Analyse ----
+  /* ===== Analyse ========================================================= */
+
   function parseManualVariants(text){
-    const lines=text.split(/\\r?\\n/).filter(l=>l.trim().length>0);
-    const res=[];
+    const lines = text.split(/\\r?\\n/).filter(l=>l.trim().length>0);
+    const res = [];
     for(const line of lines){
-      const nums=(line.match(/\\d+/g)||[]).map(Number);
+      const nums = (line.match(/\\d+/g)||[]).map(Number);
       if(nums.length<5) continue;
-      const arr=nums.slice(-7);
-      const main=arr.slice(0,5);
-      const euro=arr.slice(5,7);
+      const arr = nums.slice(-7);
+      const main = arr.slice(0,5);
+      const euro = arr.slice(5,7);
       if(!main.every(n=>n>=1 && n<=50)) continue;
       if(euro.length && !euro.every(e=>e>=1 && e<=12)) continue;
       main.sort((a,b)=>a-b);
@@ -747,86 +772,92 @@
     }
     return res;
   }
+
   function analyze(){
     if(!app.draws.length){
-      setAnalysisStatus("Bitte zuerst das Archiv laden.","err");
+      setStatus("analysisStatus","Bitte zuerst das Archiv laden.","err");
       el("analysisWrap").style.display="none";
       return;
     }
     const src = Array.from(document.getElementsByName("vsource")).find(r=>r.checked)?.value || "gen";
-    let variants=[];
+    let variants = [];
     if(src==="gen"){
       if(!app.generated.length){
-        setAnalysisStatus("Keine generierten Varianten vorhanden.","err");
+        setStatus("analysisStatus","Keine generierten Varianten vorhanden.","err");
         el("analysisWrap").style.display="none";
         return;
       }
-      variants=app.generated.slice();
+      variants = app.generated.slice();
     }else{
-      const text=el("manualInput").value.trim();
+      const text = el("manualInput").value.trim();
       if(!text){
-        setAnalysisStatus("Bitte Varianten in das Textfeld eintragen.","err");
+        setStatus("analysisStatus","Bitte Varianten in das Textfeld eintragen.","err");
         el("analysisWrap").style.display="none";
         return;
       }
-      variants=parseManualVariants(text);
+      variants = parseManualVariants(text);
       if(!variants.length){
-        setAnalysisStatus("Keine gültigen Varianten in der Eingabe gefunden.","err");
+        setStatus("analysisStatus","Keine gültigen Varianten in der Eingabe gefunden.","err");
         el("analysisWrap").style.display="none";
         return;
       }
     }
-    const includeEuro=el("analysisIncludeEuro").checked;
-    setAnalysisStatus("Analyse läuft …","info",true);
-    const body=el("analysisBody"); body.innerHTML="";
+
+    const includeEuro = el("analysisIncludeEuro").checked;
+    setStatus("analysisStatus","Analyse läuft…","info",true);
+
+    const body = el("analysisBody");
+    body.innerHTML = "";
+
     variants.forEach((v,idx)=>{
       let h3=0,h4=0,h5=0;
-      const map={};
-      for(const d of app.draws){
-        const mh=countIntersection(v.main,d.main);
-        if(mh<3) continue;
+      const euroMap = {};
+      app.draws.forEach(d=>{
+        const mh = countIntersection(v.main,d.main);
+        if(mh<3) return;
         if(mh===3) h3++; else if(mh===4) h4++; else if(mh===5) h5++;
         if(includeEuro && v.euro && v.euro.length){
-          const eh=countIntersection(v.euro,d.euro);
-          const key=mh+"+"+eh;
-          map[key]=(map[key]||0)+1;
+          const eh = countIntersection(v.euro,d.euro);
+          const key = mh+"+"+eh;
+          euroMap[key]=(euroMap[key]||0)+1;
         }
-      }
-      let euroTxt="–";
+      });
+      let euroTxt = "–";
       if(includeEuro){
-        const parts=Object.keys(map).sort((a,b)=>{
+        const parts = Object.keys(euroMap).sort((a,b)=>{
           const [am,ae]=a.split("+").map(Number);
           const [bm,be]=b.split("+").map(Number);
           if(am!==bm) return bm-am;
           return be-ae;
-        }).map(k=>`${k} (${map[k]}×)`);
-        euroTxt=parts.length?parts.join(", "):"–";
+        }).map(k=>`${k} (${euroMap[k]}×)`);
+        euroTxt = parts.length?parts.join(", "):"–";
       }
-      const mainStr=v.main.join(" "), euroStr=v.euro && v.euro.length?" | "+v.euro.join(" "):"";
-      const tr=document.createElement("tr");
-      tr.innerHTML=`<td>${idx+1}</td><td>${mainStr}${euroStr}</td><td>${h3}</td><td>${h4}</td><td>${h5}</td><td>${euroTxt}</td>`;
+      const mainStr = v.main.join(" ");
+      const euroStr = v.euro && v.euro.length ? " | "+v.euro.join(" ") : "";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${idx+1}</td><td>${mainStr}${euroStr}</td><td>${h3}</td><td>${h4}</td><td>${h5}</td><td>${euroTxt}</td>`;
       body.appendChild(tr);
     });
+
     el("analysisWrap").style.display="block";
-    setAnalysisStatus("Analyse für "+variants.length+" Varianten abgeschlossen.","ok");
+    setStatus("analysisStatus","Analyse für "+variants.length+" Varianten abgeschlossen.","ok");
   }
 
-  // ---- Init ----
+  /* ===== Init ============================================================ */
+
   function initDate(){
-    const d=new Date();
-    const yyyy=d.getFullYear(), mm=String(d.getMonth()+1).padStart(2,"0"), dd=String(d.getDate()).padStart(2,"0");
-    el("drawDate").value=`${yyyy}-${mm}-${dd}`;
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    el("drawDate").value = `${yyyy}-${mm}-${dd}`;
   }
 
   function init(){
     initDate();
     setupFileInput();
 
-    // automatische Erst-Ladung der lokalen TXT, falls vorhanden
-    loadLocalTxt(true);
-
-    el("btnAutoLocal").addEventListener("click",()=>loadLocalTxt(false));
-    el("btnLoadRemote").addEventListener("click",loadRemoteArchive);
+    el("btnLoadRemote").addEventListener("click",loadArchiveRemote);
     el("btnStats").addEventListener("click",computeStats);
     el("btnGen").addEventListener("click",generateVariants);
     el("btnExportTxt").addEventListener("click",()=>exportVariants("txt"));
