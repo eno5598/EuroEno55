@@ -1,0 +1,2183 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Eurojackpot Analyse & Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg-main: #05060a;
+      --bg-elevated: #10121a;
+      --bg-elevated-soft: #151824;
+      --border-subtle: #252738;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59,130,246,0.2);
+      --accent-strong: rgba(59,130,246,0.35);
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --text-soft: #6b7280;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #facc15;
+      --shadow-soft: 0 18px 35px rgba(0,0,0,0.55);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-pill: 999px;
+      --transition-fast: 0.18s ease-out;
+      --transition-med: 0.25s ease-out;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at top, #111827 0, #020617 52%, #000 100%);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, -system-ui, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .app-shell {
+      max-width: 1260px;
+      width: 100%;
+      background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(2,6,23,0.96));
+      border-radius: 26px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(148,163,184,0.25);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(26px);
+    }
+
+    header.app-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid rgba(55,65,81,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: radial-gradient(circle at top left, rgba(59,130,246,0.55), transparent 55%);
+    }
+
+    .app-title-block {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #e5e7eb, #1d4ed8 55%, #020617 100%);
+      box-shadow: 0 0 0 1px rgba(15,23,42,0.8), 0 12px 30px rgba(15,23,42,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: #020617;
+    }
+
+    .app-title-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .app-title-text h1 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      background: rgba(15,23,42,0.8);
+      border: 1px solid rgba(148,163,184,0.4);
+      color: var(--text-muted);
+    }
+
+    .app-title-text span {
+      font-size: 12px;
+      color: var(--text-soft);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pill-info {
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148,163,184,0.35);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(
+        145deg,
+        rgba(15,23,42,0.9),
+        rgba(15,23,42,0.3)
+      );
+    }
+
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 4px rgba(34,197,94,0.2);
+    }
+
+    .btn {
+      border-radius: var(--radius-pill);
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast),
+        background var(--transition-fast), border-color var(--transition-fast);
+      background: radial-gradient(circle at 0% 0%, #fff, #93c5fd);
+      color: #020617;
+      box-shadow:
+        0 10px 30px rgba(37,99,235,0.65),
+        0 0 0 1px rgba(191,219,254,0.8);
+    }
+
+    .btn span.icon {
+      font-size: 15px;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        0 14px 34px rgba(37,99,235,0.8),
+        0 0 0 1px rgba(219,234,254,0.95);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow:
+        0 8px 18px rgba(30,64,175,0.85),
+        0 0 0 1px rgba(191,219,254,0.9);
+    }
+
+    .btn-ghost {
+      background: rgba(15,23,42,0.85);
+      color: var(--text-muted);
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148,163,184,0.45);
+      padding: 7px 13px;
+      box-shadow: none;
+    }
+
+    .btn-ghost:hover {
+      background: rgba(17,24,39,0.96);
+      color: var(--text-main);
+      transform: none;
+      box-shadow: 0 0 0 1px rgba(148,163,184,0.7);
+    }
+
+    .btn-ghost:active {
+      transform: translateY(1px);
+    }
+
+    .app-body {
+      display: grid;
+      grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+      gap: 18px;
+      padding: 18px 20px 20px 20px;
+    }
+
+    .sidebar {
+      border-right: 1px solid rgba(31,41,55,0.85);
+      padding-right: 16px;
+      margin-right: -4px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .sidebar-card {
+      background: radial-gradient(circle at top left, rgba(30,64,175,0.18), transparent 55%),
+                  linear-gradient(145deg, rgba(15,23,42,0.98), rgba(2,6,23,0.98));
+      border-radius: 20px;
+      padding: 14px 14px 14px 14px;
+      border: 1px solid rgba(55,65,81,0.9);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+    }
+
+    .sidebar-card h2 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #e5e7eb;
+    }
+
+    .sidebar-card p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--text-soft);
+      line-height: 1.5;
+    }
+
+    .sidebar-note {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .sidebar-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .sidebar-tab {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(75,85,99,0.85);
+      background: rgba(15,23,42,0.85);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .sidebar-tab-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(156,163,175,0.8);
+    }
+
+    .risk-card {
+      margin-top: 10px;
+      font-size: 11px;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      border: 1px dashed rgba(248,250,252,0.22);
+      background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(127,29,29,0.4));
+      color: #fef9c3;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.9), transparent 55%),
+                  linear-gradient(145deg, rgba(15,23,42,0.96), rgba(2,6,23,0.96));
+      border-radius: var(--radius-lg);
+      padding: 14px 14px 16px 14px;
+      border: 1px solid rgba(55,65,81,0.95);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.75);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .card-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: #e5e7eb;
+    }
+
+    .card-subtitle {
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chip {
+      font-size: 11px;
+      padding: 3px 7px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(75,85,99,0.9);
+      color: var(--text-muted);
+      background: rgba(15,23,42,0.9);
+    }
+
+    .card-body {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .form-group label {
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .input,
+    select {
+      background: rgba(15,23,42,0.95);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(55,65,81,0.95);
+      color: var(--text-main);
+      font-size: 12px;
+      padding: 7px 9px;
+      outline: none;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast),
+        background var(--transition-fast), transform var(--transition-fast);
+    }
+
+    .input:focus,
+    select:focus {
+      border-color: rgba(59,130,246,0.8);
+      box-shadow: 0 0 0 1px rgba(59,130,246,0.7);
+      background: rgba(15,23,42,1);
+      transform: translateY(-0.5px);
+    }
+
+    input[type="file"] {
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .switch input {
+      display: none;
+    }
+
+    .switch-pill {
+      width: 30px;
+      height: 16px;
+      border-radius: 999px;
+      background: rgba(31,41,55,0.9);
+      position: relative;
+      border: 1px solid rgba(75,85,99,0.9);
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .switch-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      transition: transform var(--transition-fast), background var(--transition-fast),
+        box-shadow var(--transition-fast);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.7);
+    }
+
+    .switch input:checked + .switch-pill {
+      background: radial-gradient(circle at 0 0, #e0f2fe, #3b82f6);
+      border-color: rgba(191,219,254,0.95);
+    }
+
+    .switch input:checked + .switch-pill .switch-thumb {
+      transform: translateX(12px);
+      background: #0f172a;
+      box-shadow: 0 0 0 3px rgba(191,219,254,0.7);
+    }
+
+    .status {
+      font-size: 11px;
+      margin-top: 4px;
+      color: var(--text-soft);
+    }
+
+    .status .ok {
+      color: var(--success);
+    }
+
+    .status .error {
+      color: var(--danger);
+    }
+
+    .status .warn {
+      color: var(--warning);
+    }
+
+    .status small {
+      display: block;
+      margin-top: 2px;
+    }
+
+    .tags-inline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(55,65,81,0.9);
+      background: rgba(15,23,42,0.96);
+      color: var(--text-soft);
+    }
+
+    .numbers-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .ball {
+      min-width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.75);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 500;
+      background: radial-gradient(circle at 30% 20%, #f9fafb, #9ca3af);
+      color: #020617;
+      box-shadow: 0 2px 4px rgba(15,23,42,0.8);
+    }
+
+    .ball-euro {
+      background: radial-gradient(circle at 30% 20%, #fef9c3, #fbbf24);
+      border-color: rgba(234,179,8,0.85);
+    }
+
+    .result-table-wrapper {
+      margin-top: 8px;
+      max-height: 260px;
+      overflow: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(31,41,55,0.95);
+      background: radial-gradient(circle at top, rgba(15,23,42,0.92), rgba(15,23,42,0.96));
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    thead {
+      background: rgba(15,23,42,0.98);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    th, td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(31,41,55,0.9);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      font-weight: 500;
+      font-size: 11px;
+      color: #e5e7eb;
+    }
+
+    tbody tr:nth-child(2n) {
+      background: rgba(15,23,42,0.86);
+    }
+
+    .pill-mini {
+      border-radius: var(--radius-pill);
+      padding: 2px 7px;
+      font-size: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(75,85,99,0.9);
+      background: rgba(15,23,42,0.96);
+    }
+
+    .pill-hot {
+      border-color: rgba(248,113,113,0.9);
+      color: #fecaca;
+      background: rgba(127,29,29,0.7);
+    }
+
+    .pill-cold {
+      border-color: rgba(59,130,246,0.9);
+      color: #bfdbfe;
+      background: rgba(30,64,175,0.7);
+    }
+
+    .pill-neutral {
+      border-color: rgba(148,163,184,0.65);
+      color: #e5e7eb;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      max-height: 220px;
+      resize: vertical;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(55,65,81,0.95);
+      background: rgba(15,23,42,0.96);
+      color: var(--text-main);
+      font-size: 12px;
+      padding: 7px 9px;
+      outline: none;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast),
+        background var(--transition-fast), transform var(--transition-fast);
+    }
+
+    textarea:focus {
+      border-color: rgba(59,130,246,0.8);
+      box-shadow: 0 0 0 1px rgba(59,130,246,0.7);
+      transform: translateY(-0.5px);
+    }
+
+    .radio-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .radio-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    .flex-between {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .download-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+
+    .btn-outline {
+      background: rgba(15,23,42,0.96);
+      color: var(--text-muted);
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148,163,184,0.7);
+      box-shadow: none;
+    }
+
+    .btn-outline:hover {
+      background: rgba(17,24,39,0.98);
+      color: var(--text-main);
+      box-shadow: 0 0 0 1px rgba(148,163,184,0.9);
+      transform: none;
+    }
+
+    .loader {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(148,163,184,0.6);
+      border-top-color: #e5e7eb;
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .muted {
+      color: var(--text-soft);
+      font-size: 11px;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--text-soft);
+      margin-top: 4px;
+    }
+
+    .small {
+      font-size: 11px;
+    }
+
+    footer.app-footer {
+      padding: 8px 18px 14px 18px;
+      border-top: 1px solid rgba(31,41,55,0.9);
+      font-size: 11px;
+      color: var(--text-soft);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-badge {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(75,85,99,0.9);
+      background: rgba(15,23,42,0.96);
+      color: var(--text-muted);
+    }
+
+    .footer-right {
+      text-align: right;
+    }
+
+    .link-soft {
+      color: #bfdbfe;
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(191,219,254,0.6);
+    }
+
+    .link-soft:hover {
+      border-bottom-style: solid;
+    }
+
+    @media (max-width: 980px) {
+      body {
+        padding: 8px;
+      }
+
+      .app-shell {
+        border-radius: 18px;
+      }
+
+      .app-body {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 12px 12px 14px 12px;
+      }
+
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid rgba(31,41,55,0.85);
+        padding-right: 0;
+        padding-bottom: 12px;
+        margin-right: 0;
+      }
+
+      .main-grid {
+        grid-template-columns: minmax(0,1fr);
+      }
+
+      header.app-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .header-actions {
+        align-self: stretch;
+        justify-content: space-between;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .card {
+        padding: 12px 10px 12px 10px;
+      }
+
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      header.app-header {
+        padding: 14px 12px;
+      }
+
+      .app-body {
+        padding: 10px;
+      }
+
+      footer.app-footer {
+        padding: 8px 10px 10px 10px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .result-table-wrapper {
+        max-height: 220px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="app-header">
+    <div class="app-title-block">
+      <div class="logo-circle">EJ</div>
+      <div class="app-title-text">
+        <h1>
+          Eurojackpot
+          <span class="badge-pill">Analyse &amp; Varianten-Tool</span>
+        </h1>
+        <span>Statistik, Varianten &amp; Historie – in einer Datei, lokal im Browser.</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="pill-info">
+        <span class="pill-dot"></span>
+        <span>Alles läuft lokal – keine Gewinn-Garantie, reine Statistik.</span>
+      </div>
+      <button id="btnScrollToGenerator" class="btn btn-sm" type="button">
+        <span class="icon">🎟️</span>
+        <span>Zum Varianten-Generator</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-card">
+        <h2>Über dieses Tool</h2>
+        <p>
+          Dieses Tool hilft dir, Eurojackpot-Ziehungen zu analysieren,
+          Hot/Cold-Zahlen zu sehen und „schlaue“ Varianten zu erzeugen.
+        </p>
+        <div class="sidebar-note">
+          Alle Berechnungen laufen nur in deinem Browser. Es wird
+          nichts hochgeladen oder gespeichert – außer, du speicherst
+          die Datei selbst.
+        </div>
+
+        <div class="sidebar-tabs">
+          <div class="sidebar-tab">
+            <span class="sidebar-tab-dot"></span> Statistik
+          </div>
+          <div class="sidebar-tab">
+            <span class="sidebar-tab-dot"></span> Varianten-Generator
+          </div>
+          <div class="sidebar-tab">
+            <span class="sidebar-tab-dot"></span> Historische Treffer
+          </div>
+          <div class="sidebar-tab">
+            <span class="sidebar-tab-dot"></span> Hot/Cold &amp; Bereiche
+          </div>
+        </div>
+
+        <div class="risk-card">
+          ⚠️ <strong>Wichtiger Hinweis:</strong><br>
+          Dieses Tool erhöht nicht deine Gewinnchance. Jede Kombination ist
+          mathematisch gleich wahrscheinlich. Nutze es nur für Struktur und
+          Übersicht – nicht für Einsatzentscheidungen.
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-grid">
+      <!-- Archiv & Einstellungen -->
+      <section id="sectionArchive" class="card">
+        <div class="card-header">
+          <div class="card-header-left">
+            <h2 class="card-title">Archiv &amp; Daten</h2>
+            <div class="card-subtitle">
+              Offizielles Eurojackpot-Archiv laden oder CSV manuell importieren.
+            </div>
+          </div>
+          <div class="card-actions">
+            <span class="chip">Quelle: Lotto Bayern Archiv</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Automatisch beim Start laden</label>
+              <label class="switch">
+                <input type="checkbox" id="autoLoadArchive">
+                <span class="switch-pill">
+                  <span class="switch-thumb"></span>
+                </span>
+                <span>aktivieren</span>
+              </label>
+              <div class="hint">
+                Versucht, das Archiv von der offiziellen ZIP-URL zu laden.
+                Bei CORS/ZIP-Problemen nutze bitte die CSV-Upload-Funktion.
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Proxy-Einstellungen (optional)</label>
+              <div class="form-row">
+                <label class="switch">
+                  <input type="checkbox" id="useProxy">
+                  <span class="switch-pill">
+                    <span class="switch-thumb"></span>
+                  </span>
+                  <span>Proxy verwenden</span>
+                </label>
+              </div>
+              <input class="input" id="proxyUrl" placeholder="z.B. https://dein-proxy.tld/?url={url}">
+              <div class="hint small">
+                Browser können selbst keinen „echten“ System-Proxy nutzen.
+                Hier kannst du z.B. einen eigenen CORS-Proxy eintragen,
+                der die ZIP-Datei weiterleitet.
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Archiv von offizieller URL laden</label>
+              <button id="btnLoadArchive" type="button" class="btn btn-sm">
+                <span class="icon">⬇️</span>
+                <span>Archiv jetzt laden</span>
+              </button>
+              <div class="hint small">
+                URL: <span style="color:#bfdbfe;">https://www.lotto-bayern.de/static/gamebroker_2/de/download_files/archiv_eurojackpot.zip</span><br>
+                Falls der Browser den direkten Download blockiert, lade die ZIP
+                manuell herunter, entpacke sie und nutze den CSV-Upload.
+              </div>
+            </div>
+            <div class="form-group">
+              <label>CSV/Datei manuell hochladen</label>
+              <input id="fileInput" type="file" accept=".csv,.txt,.zip">
+              <div class="hint small">
+                Empfohlen: Entpacke die ZIP-Datei und lade die enthaltene CSV hoch.
+                ZIP-Parsing im Browser ist stark vom Format und Umgebung abhängig.
+              </div>
+            </div>
+          </div>
+
+          <div id="archiveStatus" class="status">
+            Noch keine Daten geladen.
+          </div>
+        </div>
+      </section>
+
+      <!-- Statistik & Frequenzen -->
+      <section id="sectionStats" class="card">
+        <div class="card-header">
+          <div class="card-header-left">
+            <h2 class="card-title">Statistik &amp; Frequenzen</h2>
+            <div class="card-subtitle">
+              Hot/Cold-Zahlen, Bereiche &amp; Quoten der letzten Ziehungen.
+            </div>
+          </div>
+          <div class="card-actions">
+            <span class="chip">Frequenz-Analyse</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Zeitraum (letzte X Ziehungen)</label>
+              <select id="statsRange">
+                <option value="6">6 Ziehungen</option>
+                <option value="12" selected>12 Ziehungen</option>
+                <option value="18">18 Ziehungen</option>
+                <option value="24">24 Ziehungen</option>
+                <option value="30">30 Ziehungen</option>
+                <option value="36">36 Ziehungen</option>
+                <option value="42">42 Ziehungen</option>
+                <option value="48">48 Ziehungen</option>
+                <option value="54">54 Ziehungen</option>
+                <option value="60">60 Ziehungen</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Optionen</label>
+              <div class="form-row">
+                <label class="switch">
+                  <input type="checkbox" id="statsIncludeEuro" checked>
+                  <span class="switch-pill">
+                    <span class="switch-thumb"></span>
+                  </span>
+                  <span>Eurozahlen berücksichtigen</span>
+                </label>
+              </div>
+              <div class="form-row">
+                <button id="btnComputeStats" type="button" class="btn btn-sm btn-outline">
+                  <span class="icon">📊</span>
+                  <span>Statistik berechnen</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="statsStatus" class="status">
+            Bitte zuerst das Archiv laden und dann „Statistik berechnen“ klicken.
+          </div>
+
+          <div id="statsResults" class="result-table-wrapper" style="display:none;">
+            <table>
+              <thead>
+              <tr>
+                <th style="min-width:60px;">Zahl</th>
+                <th>Häufigkeit</th>
+                <th>Quote</th>
+                <th>Hot/Cold</th>
+              </tr>
+              </thead>
+              <tbody id="statsMainBody"></tbody>
+            </table>
+          </div>
+
+          <div id="rangeResults" class="result-table-wrapper" style="display:none;margin-top:6px;">
+            <table>
+              <thead>
+              <tr>
+                <th>Bereich</th>
+                <th>Anzahl Zahlen</th>
+                <th>Quote</th>
+              </tr>
+              </thead>
+              <tbody id="statsRangeBody"></tbody>
+            </table>
+          </div>
+
+          <div class="hint">
+            Die Hot-/Cold-Einstufung erfolgt relativ im gewählten Zeitraum (oberste und unterste 20&nbsp;%).
+          </div>
+        </div>
+      </section>
+
+      <!-- Varianten-Generator -->
+      <section id="sectionGenerator" class="card">
+        <div class="card-header">
+          <div class="card-header-left">
+            <h2 class="card-title">Varianten-Generator</h2>
+            <div class="card-subtitle">
+              Generiere „schlaue“ Varianten für eine Ziehung – mit Statistik &amp; Bereichen.
+            </div>
+          </div>
+          <div class="card-actions">
+            <span class="chip">Smart Generator</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Anzahl Varianten</label>
+              <input id="numVariants" type="number" class="input" value="20" min="1" max="500">
+              <div class="hint small">
+                1–500 Varianten. Je mehr, desto länger dauert die Diversifizierungs-Optimierung.
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Ziehungsdatum (Info)</label>
+              <input id="targetDrawDate" type="date" class="input">
+              <div class="hint small">
+                Nur zur Anzeige – mathematisch sind alle Ziehungen gleich wahrscheinlich.
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Generator-Optionen</label>
+              <div class="form-row">
+                <label class="switch">
+                  <input type="checkbox" id="genIncludeEuro" checked>
+                  <span class="switch-pill">
+                    <span class="switch-thumb"></span>
+                  </span>
+                  <span>Eurozahlen generieren</span>
+                </label>
+              </div>
+              <div class="form-row">
+                <label class="switch">
+                  <input type="checkbox" id="genUseStats" checked>
+                  <span class="switch-pill">
+                    <span class="switch-thumb"></span>
+                  </span>
+                  <span>Hot/Cold &amp; Frequenz nutzen</span>
+                </label>
+              </div>
+              <div class="form-row">
+                <label class="switch">
+                  <input type="checkbox" id="genUseRanges" checked>
+                  <span class="switch-pill">
+                    <span class="switch-thumb"></span>
+                  </span>
+                  <span>Bereichsquoten berücksichtigen</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Diversität &amp; Struktur</label>
+              <div class="form-row">
+                <label class="switch">
+                  <input type="checkbox" id="genAvoidDuplicates" checked>
+                  <span class="switch-pill">
+                    <span class="switch-thumb"></span>
+                  </span>
+                  <span>Duplikate vermeiden</span>
+                </label>
+              </div>
+              <div class="form-row">
+                <label class="switch">
+                  <input type="checkbox" id="genMaximizeDiversity" checked>
+                  <span class="switch-pill">
+                    <span class="switch-thumb"></span>
+                  </span>
+                  <span>Abstand zwischen Varianten maximieren</span>
+                </label>
+              </div>
+              <div class="hint small">
+                Der Generator versucht, Varianten zu erzeugen, die sich möglichst
+                stark voneinander unterscheiden (wenige gemeinsame Zahlen).
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <button id="btnGenerate" type="button" class="btn btn-sm">
+              <span class="icon">✨</span>
+              <span>Varianten generieren</span>
+            </button>
+            <div id="generateStatus" class="status"></div>
+          </div>
+
+          <div id="generatorOutputWrapper" class="result-table-wrapper" style="display:none;">
+            <table>
+              <thead>
+              <tr>
+                <th>#</th>
+                <th>Hauptzahlen</th>
+                <th>Eurozahlen</th>
+              </tr>
+              </thead>
+              <tbody id="generatorBody"></tbody>
+            </table>
+          </div>
+          <div id="generatorDownload" class="download-buttons" style="display:none;">
+            <button id="btnDownloadTxt" type="button" class="btn btn-sm btn-outline">
+              <span class="icon">📄</span>
+              <span>Als Text exportieren</span>
+            </button>
+            <button id="btnDownloadCsv" type="button" class="btn btn-sm btn-outline">
+              <span class="icon">🧾</span>
+              <span>Als CSV exportieren</span>
+            </button>
+          </div>
+          <div class="hint">
+            Hinweis: Statistik &amp; Bereiche sind Heuristiken. Sie verändern <strong>nicht</strong>
+            die mathematische Wahrscheinlichkeit, dass eine bestimmte Variante gezogen wird.
+          </div>
+        </div>
+      </section>
+
+      <!-- Varianten-Analyse -->
+      <section id="sectionAnalysis" class="card">
+        <div class="card-header">
+          <div class="card-header-left">
+            <h2 class="card-title">Varianten-Analyse</h2>
+            <div class="card-subtitle">
+              Prüfe, ob Varianten historisch schon aufgetreten sind oder wie viele Treffer sie hatten.
+            </div>
+          </div>
+          <div class="card-actions">
+            <span class="chip">Historie &amp; Treffer</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Varianten-Quelle</label>
+              <div class="radio-row">
+                <label>
+                  <input type="radio" name="variantSource" value="generated" checked>
+                  <span>Aktuell generierte Varianten</span>
+                </label>
+                <label>
+                  <input type="radio" name="variantSource" value="manual">
+                  <span>Manuell eingegebene Varianten</span>
+                </label>
+              </div>
+              <div class="hint small">
+                Bei „manuell“ kannst du eigene Kombinationen eintragen, z.B.:<br>
+                <code>1 5 12 28 44 | 3 7</code> oder <code>1;5;12;28;44;3;7</code> (eine Variante pro Zeile).
+              </div>
+            </div>
+          </div>
+          <div class="form-row" id="manualVariantsRow" style="display:none;">
+            <div class="form-group">
+              <label>Manuelle Varianten</label>
+              <textarea id="manualVariants" placeholder="Beispiele:
+1 5 12 28 44 | 3 7
+3 11 19 33 45 | 2 4"></textarea>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Analyse-Optionen</label>
+              <div class="form-row">
+                <label class="switch">
+                  <input type="checkbox" id="analysisIncludeEuro" checked>
+                  <span class="switch-pill">
+                    <span class="switch-thumb"></span>
+                  </span>
+                  <span>Eurozahlen berücksichtigen</span>
+                </label>
+              </div>
+              <div class="hint small">
+                Wenn aktiviert, wird zwischen Treffern wie 5+2, 5+1, 4+2, 3+2 usw. unterschieden.
+              </div>
+            </div>
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <button id="btnAnalyzeVariants" type="button" class="btn btn-sm btn-outline">
+                <span class="icon">🔎</span>
+                <span>Analyse starten</span>
+              </button>
+              <div id="analysisStatus" class="status"></div>
+            </div>
+          </div>
+
+          <div id="analysisResults" class="result-table-wrapper" style="display:none;">
+            <table>
+              <thead>
+              <tr>
+                <th>#</th>
+                <th>Variante</th>
+                <th>3/5</th>
+                <th>4/5</th>
+                <th>5/5</th>
+                <th id="thEuroHits">inkl. Euro (z.B. 5+2, 4+1)</th>
+              </tr>
+              </thead>
+              <tbody id="analysisBody"></tbody>
+            </table>
+          </div>
+          <div class="hint">
+            Die Analyse durchsucht alle geladenen Ziehungen und zählt, wie oft
+            deine Varianten mindestens 3 Hauptzahlen getroffen haben
+            (optional mit Eurozahlen-Auswertung).
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="app-footer">
+    <div class="footer-left">
+      <span class="footer-badge">Mathematisch fair · reine Statistik</span>
+      <span>
+        Bitte nur mit Geld spielen, dessen Verlust du verkraften kannst.
+      </span>
+    </div>
+    <div class="footer-right">
+      <span class="small">
+        Archiv-Quelle: <a class="link-soft" href="https://www.lotto-bayern.de" target="_blank" rel="noreferrer">lotto-bayern.de</a><br>
+        Diese Software steht in keiner offiziellen Verbindung zu Eurojackpot oder Lotto Bayern.
+      </span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  const ARCHIVE_URL = "https://www.lotto-bayern.de/static/gamebroker_2/de/download_files/archiv_eurojackpot.zip";
+
+  class EurojackpotApp {
+    constructor() {
+      this.draws = [];               // {date: Date, main: [5], euro: [2]}
+      this.generatedVariants = [];   // {main:[5], euro:[2]}
+      this.lastStats = null;         // {mainFreq, euroFreq, ranges, hotSet, coldSet, euroHotSet, euroColdSet, totalMain, totalEuro}
+      this.loadingArchive = false;
+    }
+
+    init() {
+      this.cacheDom();
+      this.bindEvents();
+      this.loadSettings();
+      this.initDefaultDate();
+      this.updateArchiveStatus("Noch keine Daten geladen.", "info");
+      this.updateStatsStatus("Bitte zuerst das Archiv laden und dann „Statistik berechnen“ klicken.", "info");
+
+      if (this.autoLoadArchiveCheckbox.checked) {
+        this.tryAutoLoadArchive();
+      }
+    }
+
+    cacheDom() {
+      this.autoLoadArchiveCheckbox = document.getElementById("autoLoadArchive");
+      this.useProxyCheckbox = document.getElementById("useProxy");
+      this.proxyUrlInput = document.getElementById("proxyUrl");
+      this.btnLoadArchive = document.getElementById("btnLoadArchive");
+      this.fileInput = document.getElementById("fileInput");
+      this.archiveStatus = document.getElementById("archiveStatus");
+
+      this.statsRangeSelect = document.getElementById("statsRange");
+      this.statsIncludeEuroCheckbox = document.getElementById("statsIncludeEuro");
+      this.btnComputeStats = document.getElementById("btnComputeStats");
+      this.statsStatus = document.getElementById("statsStatus");
+      this.statsResults = document.getElementById("statsResults");
+      this.statsMainBody = document.getElementById("statsMainBody");
+      this.rangeResults = document.getElementById("rangeResults");
+      this.statsRangeBody = document.getElementById("statsRangeBody");
+
+      this.numVariantsInput = document.getElementById("numVariants");
+      this.targetDrawDateInput = document.getElementById("targetDrawDate");
+      this.genIncludeEuroCheckbox = document.getElementById("genIncludeEuro");
+      this.genUseStatsCheckbox = document.getElementById("genUseStats");
+      this.genUseRangesCheckbox = document.getElementById("genUseRanges");
+      this.genAvoidDuplicatesCheckbox = document.getElementById("genAvoidDuplicates");
+      this.genMaximizeDiversityCheckbox = document.getElementById("genMaximizeDiversity");
+      this.btnGenerate = document.getElementById("btnGenerate");
+      this.generateStatus = document.getElementById("generateStatus");
+      this.generatorOutputWrapper = document.getElementById("generatorOutputWrapper");
+      this.generatorBody = document.getElementById("generatorBody");
+      this.generatorDownload = document.getElementById("generatorDownload");
+      this.btnDownloadTxt = document.getElementById("btnDownloadTxt");
+      this.btnDownloadCsv = document.getElementById("btnDownloadCsv");
+
+      this.variantSourceRadios = document.getElementsByName("variantSource");
+      this.manualVariantsRow = document.getElementById("manualVariantsRow");
+      this.manualVariantsTextarea = document.getElementById("manualVariants");
+      this.analysisIncludeEuroCheckbox = document.getElementById("analysisIncludeEuro");
+      this.btnAnalyzeVariants = document.getElementById("btnAnalyzeVariants");
+      this.analysisStatus = document.getElementById("analysisStatus");
+      this.analysisResults = document.getElementById("analysisResults");
+      this.analysisBody = document.getElementById("analysisBody");
+      this.thEuroHits = document.getElementById("thEuroHits");
+
+      this.btnScrollToGenerator = document.getElementById("btnScrollToGenerator");
+    }
+
+    bindEvents() {
+      this.autoLoadArchiveCheckbox.addEventListener("change", () => this.saveSettings());
+      this.useProxyCheckbox.addEventListener("change", () => this.saveSettings());
+      this.proxyUrlInput.addEventListener("blur", () => this.saveSettings());
+
+      this.btnLoadArchive.addEventListener("click", () => this.loadArchiveFromRemote());
+      this.fileInput.addEventListener("change", (e) => this.handleFileUpload(e));
+
+      this.btnComputeStats.addEventListener("click", () => this.computeStats());
+
+      this.btnGenerate.addEventListener("click", () => this.generateVariants());
+      this.btnDownloadTxt.addEventListener("click", () => this.downloadGenerated("txt"));
+      this.btnDownloadCsv.addEventListener("click", () => this.downloadGenerated("csv"));
+
+      Array.from(this.variantSourceRadios).forEach(radio => {
+        radio.addEventListener("change", () => this.updateVariantSourceUI());
+      });
+
+      this.btnAnalyzeVariants.addEventListener("click", () => this.analyzeVariants());
+
+      this.btnScrollToGenerator.addEventListener("click", () => {
+        const section = document.getElementById("sectionGenerator");
+        if (section && section.scrollIntoView) {
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    }
+
+    loadSettings() {
+      try {
+        const json = localStorage.getItem("ej_tool_settings");
+        if (!json) return;
+        const settings = JSON.parse(json);
+        if (typeof settings.autoLoadArchive === "boolean") {
+          this.autoLoadArchiveCheckbox.checked = settings.autoLoadArchive;
+        }
+        if (typeof settings.useProxy === "boolean") {
+          this.useProxyCheckbox.checked = settings.useProxy;
+        }
+        if (typeof settings.proxyUrl === "string") {
+          this.proxyUrlInput.value = settings.proxyUrl;
+        }
+      } catch (e) {
+        console.warn("Einstellungen konnten nicht geladen werden:", e);
+      }
+    }
+
+    saveSettings() {
+      try {
+        const settings = {
+          autoLoadArchive: this.autoLoadArchiveCheckbox.checked,
+          useProxy: this.useProxyCheckbox.checked,
+          proxyUrl: this.proxyUrlInput.value.trim()
+        };
+        localStorage.setItem("ej_tool_settings", JSON.stringify(settings));
+      } catch (e) {
+        console.warn("Einstellungen konnten nicht gespeichert werden:", e);
+      }
+    }
+
+    initDefaultDate() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      this.targetDrawDateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    tryAutoLoadArchive() {
+      this.loadArchiveFromRemote(true);
+    }
+
+    buildProxyUrl(url) {
+      const useProxy = this.useProxyCheckbox.checked;
+      const proxyBase = this.proxyUrlInput.value.trim();
+      if (!useProxy || !proxyBase) return url;
+      if (proxyBase.includes("{url}")) {
+        return proxyBase.replace("{url}", encodeURIComponent(url));
+      }
+      return proxyBase.replace(/\/+$/, "") + "/" + encodeURIComponent(url);
+    }
+
+    async loadArchiveFromRemote(isAuto = false) {
+      if (this.loadingArchive) return;
+      this.loadingArchive = true;
+      this.updateArchiveStatus("Lade Archiv von offizieller URL …", "info", true);
+
+      const url = this.buildProxyUrl(ARCHIVE_URL);
+      try {
+        const response = await fetch(url, { method: "GET" });
+        if (!response.ok) {
+          throw new Error("HTTP-Status " + response.status);
+        }
+
+        const contentType = response.headers.get("Content-Type") || "";
+        if (contentType.includes("text/csv") || contentType.includes("text/plain")) {
+          const text = await response.text();
+          this.parseCsvText(text);
+          this.updateArchiveStatus("Archiv erfolgreich geladen (direkte CSV-Quelle).", "ok");
+        } else {
+          // Vermutlich ZIP – wir weisen auf manuellen Weg hin
+          this.updateArchiveStatus(
+            "ZIP-Datei wurde geladen, aber automatisches Entpacken im Browser ist nicht implementiert. " +
+            "Bitte die ZIP manuell herunterladen, entpacken und die CSV über den Datei-Upload laden.",
+            "warn"
+          );
+        }
+      } catch (e) {
+        console.error("Fehler beim Laden des Archivs:", e);
+        if (isAuto) {
+          this.updateArchiveStatus(
+            "Automatisches Laden des Archivs ist fehlgeschlagen. " +
+            "Bitte lade die ZIP-Datei manuell herunter, entpacke sie und importiere die CSV über den Datei-Upload.",
+            "error"
+          );
+        } else {
+          this.updateArchiveStatus(
+            "Archiv konnte nicht geladen werden (" + e.message + "). " +
+            "Bitte ggf. Proxy anpassen oder die ZIP manuell herunterladen und die CSV hochladen.",
+            "error"
+          );
+        }
+      } finally {
+        this.loadingArchive = false;
+      }
+    }
+
+    handleFileUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const name = file.name.toLowerCase();
+      if (name.endsWith(".csv") || name.endsWith(".txt")) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const text = e.target.result;
+            this.parseCsvText(text);
+            this.updateArchiveStatus("CSV-Datei erfolgreich geladen und analysiert.", "ok");
+          } catch (err) {
+            console.error(err);
+            this.updateArchiveStatus("Fehler beim Verarbeiten der CSV-Datei: " + err.message, "error");
+          }
+        };
+        reader.onerror = () => {
+          this.updateArchiveStatus("Datei konnte nicht gelesen werden.", "error");
+        };
+        reader.readAsText(file);
+      } else if (name.endsWith(".zip")) {
+        this.updateArchiveStatus(
+          "ZIP-Dateien können hier nicht automatisch entpackt werden. " +
+          "Bitte entpacke die Datei lokal und lade die enthaltene CSV hoch.",
+          "warn"
+        );
+      } else {
+        this.updateArchiveStatus(
+          "Unbekanntes Dateiformat. Bitte eine CSV- oder TXT-Datei hochladen.",
+          "error"
+        );
+      }
+    }
+
+    /**
+     * Erwartet einen CSV-/Textinhalt mit Eurojackpot-Ziehungen
+     * z.B. im Format:
+     * Datum;Z1;Z2;Z3;Z4;Z5;E1;E2;...
+     * Die Funktion versucht, robust Zahlen und Datum zu erkennen.
+     */
+    parseCsvText(text) {
+      const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+      const draws = [];
+      for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i].trim();
+        if (!raw || /datum/i.test(raw)) continue;
+
+        const sepIndex = raw.indexOf(";");
+        let dateString = "";
+        let dataPart = raw;
+        if (sepIndex > 0) {
+          dateString = raw.slice(0, sepIndex).trim();
+          dataPart = raw.slice(sepIndex + 1).trim();
+        }
+
+        let date = null;
+        if (dateString) {
+          const guessed = this.parseDateGuess(dateString);
+          if (guessed) date = guessed;
+        }
+
+        const nums = (dataPart.match(/\d+/g) || []).map(Number);
+        if (nums.length < 7) {
+          continue;
+        }
+
+        const main = nums.slice(0, 5);
+        const euro = nums.slice(5, 7);
+
+        if (!main.every(n => n >= 1 && n <= 50) || !euro.every(n => n >= 1 && n <= 12)) {
+          continue;
+        }
+
+        main.sort((a,b) => a-b);
+        euro.sort((a,b) => a-b);
+
+        draws.push({
+          date: date || null,
+          main,
+          euro
+        });
+      }
+
+      if (!draws.length) {
+        throw new Error("Keine gültigen Ziehungen in der Datei gefunden.");
+      }
+
+      draws.sort((a, b) => {
+        if (!a.date && !b.date) return 0;
+        if (!a.date) return -1;
+        if (!b.date) return 1;
+        return a.date - b.date;
+      });
+
+      this.draws = draws;
+      this.lastStats = null;
+      this.updateArchiveStatus(
+        "Archiv geladen: " + draws.length + " Ziehungen erkannt.",
+        "ok"
+      );
+      this.updateStatsStatus(
+        "Archiv geladen. Wähle den Zeitraum und klicke auf „Statistik berechnen“.",
+        "info"
+      );
+    }
+
+    parseDateGuess(str) {
+      const cleaned = str.replace(/"/g, "").trim();
+      if (!cleaned) return null;
+
+      // Versuche typische deutsche Formate: DD.MM.YYYY oder YYYY-MM-DD
+      let d;
+      if (/^\d{2}\.\d{2}\.\d{4}$/.test(cleaned)) {
+        const [dd, mm, yyyy] = cleaned.split(".");
+        d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+        d = new Date(cleaned);
+      } else {
+        const nums = cleaned.match(/\d+/g);
+        if (nums && nums.length >= 3) {
+          const [a,b,c] = nums.map(Number);
+          if (a > 31) {
+            d = new Date(a, b - 1, c);
+          } else if (c > 31) {
+            d = new Date(c, b - 1, a);
+          }
+        }
+      }
+      if (d && !isNaN(d.getTime())) return d;
+      return null;
+    }
+
+    updateArchiveStatus(message, type = "info", showLoader = false) {
+      if (!this.archiveStatus) return;
+      const icon =
+        type === "ok" ? "✅" :
+        type === "error" ? "❌" :
+        type === "warn" ? "⚠️" : "ℹ️";
+      const cls =
+        type === "ok" ? "ok" :
+        type === "error" ? "error" :
+        type === "warn" ? "warn" : "";
+      this.archiveStatus.innerHTML =
+        (showLoader ? '<span class="loader"></span> ' : "") +
+        `<span class="${cls}">${icon} ${message}</span>`;
+    }
+
+    updateStatsStatus(message, type = "info") {
+      if (!this.statsStatus) return;
+      const icon =
+        type === "ok" ? "✅" :
+        type === "error" ? "❌" :
+        type === "warn" ? "⚠️" : "ℹ️";
+      const cls =
+        type === "ok" ? "ok" :
+        type === "error" ? "error" :
+        type === "warn" ? "warn" : "";
+      this.statsStatus.innerHTML = `<span class="${cls}">${icon} ${message}</span>`;
+    }
+
+    updateGeneratorStatus(message, type = "info", showLoader = false) {
+      if (!this.generateStatus) return;
+      const icon =
+        type === "ok" ? "✅" :
+        type === "error" ? "❌" :
+        type === "warn" ? "⚠️" : "ℹ️";
+      const cls =
+        type === "ok" ? "ok" :
+        type === "error" ? "error" :
+        type === "warn" ? "warn" : "";
+      this.generateStatus.innerHTML =
+        (showLoader ? '<span class="loader"></span> ' : "") +
+        `<span class="${cls}">${icon} ${message}</span>`;
+    }
+
+    updateAnalysisStatus(message, type = "info", showLoader = false) {
+      if (!this.analysisStatus) return;
+      const icon =
+        type === "ok" ? "✅" :
+        type === "error" ? "❌" :
+        type === "warn" ? "⚠️" : "ℹ️";
+      const cls =
+        type === "ok" ? "ok" :
+        type === "error" ? "error" :
+        type === "warn" ? "warn" : "";
+      this.analysisStatus.innerHTML =
+        (showLoader ? '<span class="loader"></span> ' : "") +
+        `<span class="${cls}">${icon} ${message}</span>`;
+    }
+
+    computeStats() {
+      if (!this.draws.length) {
+        this.updateStatsStatus("Es sind noch keine Ziehungen geladen. Bitte zuerst das Archiv laden.", "error");
+        this.statsResults.style.display = "none";
+        this.rangeResults.style.display = "none";
+        return;
+      }
+
+      const n = Number(this.statsRangeSelect.value) || 12;
+      const subset = this.getLastNDraws(n);
+      const includeEuro = this.statsIncludeEuroCheckbox.checked;
+
+      const freq = this.computeFrequencies(subset);
+      this.lastStats = freq;
+
+      this.renderStats(freq);
+      this.updateStatsStatus(
+        "Statistik über die letzten " + subset.length + " Ziehungen wurde berechnet.",
+        "ok"
+      );
+
+      if (!includeEuro) {
+        // Wenn Eurozahlen nicht gewünscht sind, setzen wir sie nur intern – Ausgabe ist trotzdem ok.
+      }
+    }
+
+    getLastNDraws(n) {
+      if (!n || n >= this.draws.length) return this.draws.slice();
+      return this.draws.slice(this.draws.length - n);
+    }
+
+    computeFrequencies(draws) {
+      const mainFreq = new Array(51).fill(0);
+      const euroFreq = new Array(13).fill(0);
+      const rangeCounts = [0,0,0,0,0];
+
+      for (const draw of draws) {
+        for (const n of draw.main) {
+          mainFreq[n]++;
+          const idx = Math.floor((n - 1) / 10);
+          rangeCounts[idx]++;
+        }
+        for (const e of draw.euro) {
+          euroFreq[e]++;
+        }
+      }
+
+      const totalMain = draws.length * 5;
+      const totalEuro = draws.length * 2;
+
+      const mainArr = [];
+      for (let i = 1; i <= 50; i++) {
+        mainArr.push({ number: i, count: mainFreq[i] });
+      }
+      mainArr.sort((a,b) => a.count - b.count);
+      const coldCut = Math.ceil(50 * 0.2);
+      const hotCut = Math.floor(50 * 0.8);
+      const coldSet = new Set(mainArr.slice(0, coldCut).map(x => x.number));
+      const hotSet = new Set(mainArr.slice(hotCut).map(x => x.number));
+
+      const euroArr = [];
+      for (let i = 1; i <= 12; i++) {
+        euroArr.push({ number: i, count: euroFreq[i] });
+      }
+      euroArr.sort((a,b) => a.count - b.count);
+      const euroColdCut = Math.ceil(12 * 0.2);
+      const euroHotCut = Math.floor(12 * 0.8);
+      const euroColdSet = new Set(euroArr.slice(0, euroColdCut).map(x => x.number));
+      const euroHotSet = new Set(euroArr.slice(euroHotCut).map(x => x.number));
+
+      return {
+        mainFreq,
+        euroFreq,
+        ranges: rangeCounts,
+        hotSet,
+        coldSet,
+        euroHotSet,
+        euroColdSet,
+        totalMain,
+        totalEuro,
+        sampleSize: draws.length
+      };
+    }
+
+    renderStats(freq) {
+      const { mainFreq, ranges, totalMain, sampleSize } = freq;
+
+      this.statsMainBody.innerHTML = "";
+      for (let i = 1; i <= 50; i++) {
+        const count = mainFreq[i];
+        const percent = totalMain ? (count / totalMain * 100) : 0;
+        const isHot = freq.hotSet.has(i);
+        const isCold = freq.coldSet.has(i);
+        let cls = "pill-neutral";
+        let label = "neutral";
+        if (isHot) {
+          cls = "pill-hot";
+          label = "hot";
+        } else if (isCold) {
+          cls = "pill-cold";
+          label = "cold";
+        }
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${i}</td>
+          <td>${count}</td>
+          <td>${percent.toFixed(1)} %</td>
+          <td><span class="pill-mini ${cls}">${label}</span></td>
+        `;
+        this.statsMainBody.appendChild(tr);
+      }
+
+      const rangeLabels = ["1–10", "11–20", "21–30", "31–40", "41–50"];
+      this.statsRangeBody.innerHTML = "";
+      const totalRange = ranges.reduce((a,b) => a + b, 0) || 1;
+      for (let idx = 0; idx < ranges.length; idx++) {
+        const count = ranges[idx];
+        const percent = (count / totalRange * 100);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${rangeLabels[idx]}</td>
+          <td>${count}</td>
+          <td>${percent.toFixed(1)} %</td>
+        `;
+        this.statsRangeBody.appendChild(tr);
+      }
+
+      this.statsResults.style.display = "block";
+      this.rangeResults.style.display = "block";
+    }
+
+    generateVariants() {
+      const count = Math.max(1, Math.min(500, Number(this.numVariantsInput.value) || 1));
+      this.numVariantsInput.value = String(count);
+
+      const includeEuro = this.genIncludeEuroCheckbox.checked;
+      const useStats = this.genUseStatsCheckbox.checked;
+      const useRanges = this.genUseRangesCheckbox.checked;
+      const avoidDuplicates = this.genAvoidDuplicatesCheckbox.checked;
+      const maxDiversity = this.genMaximizeDiversityCheckbox.checked;
+
+      this.updateGeneratorStatus("Varianten werden erzeugt …", "info", true);
+
+      const stats = (useStats || useRanges) ? (this.lastStats || this.computeStatsFallback()) : null;
+
+      const mainWeightsBase = new Array(51).fill(1);
+      const euroWeightsBase = new Array(13).fill(1);
+
+      if (stats && useStats) {
+        for (let n = 1; n <= 50; n++) {
+          mainWeightsBase[n] = 1;
+          if (stats.hotSet.has(n)) mainWeightsBase[n] *= 1.5;
+          if (stats.coldSet.has(n)) mainWeightsBase[n] *= 0.75;
+        }
+        for (let e = 1; e <= 12; e++) {
+          euroWeightsBase[e] = 1;
+          if (stats.euroHotSet.has(e)) euroWeightsBase[e] *= 1.5;
+          if (stats.euroColdSet.has(e)) euroWeightsBase[e] *= 0.75;
+        }
+      }
+
+      if (stats && useRanges) {
+        const rangeCounts = stats.ranges;
+        const totalRange = rangeCounts.reduce((a,b) => a + b, 0) || 1;
+        const rangeShares = rangeCounts.map(c => c / totalRange);
+        const rangeFactors = rangeShares.map(share => 0.5 + share * 1.5);
+        for (let n = 1; n <= 50; n++) {
+          const idx = Math.floor((n - 1) / 10);
+          mainWeightsBase[n] *= rangeFactors[idx];
+        }
+      }
+
+      this.generatedVariants = [];
+      const maxAttemptsPerVariant = 40;
+
+      for (let i = 0; i < count; i++) {
+        let variant = null;
+        let attempts = 0;
+        while (!variant && attempts < maxAttemptsPerVariant) {
+          attempts++;
+          variant = this.generateSingleVariant(mainWeightsBase, euroWeightsBase, includeEuro);
+          if (!variant) continue;
+
+          if (avoidDuplicates && this.variantExists(variant, this.generatedVariants)) {
+            variant = null;
+            continue;
+          }
+
+          if (maxDiversity && this.generatedVariants.length > 0) {
+            const isDiverse = this.isVariantDiverse(variant, this.generatedVariants);
+            if (!isDiverse) {
+              variant = null;
+              continue;
+            }
+          }
+        }
+        if (!variant) {
+          variant = this.generateSingleVariant(mainWeightsBase, euroWeightsBase, includeEuro, true);
+        }
+        this.generatedVariants.push(variant);
+      }
+
+      this.renderGeneratedVariants();
+      this.updateGeneratorStatus(
+        "Es wurden " + this.generatedVariants.length + " Varianten generiert.",
+        "ok"
+      );
+    }
+
+    computeStatsFallback() {
+      const subset = this.getLastNDraws(60);
+      if (!subset.length) {
+        const dummy = {
+          mainFreq: new Array(51).fill(0),
+          euroFreq: new Array(13).fill(0),
+          ranges: [0,0,0,0,0],
+          hotSet: new Set(),
+          coldSet: new Set(),
+          euroHotSet: new Set(),
+          euroColdSet: new Set(),
+          totalMain: 0,
+          totalEuro: 0,
+          sampleSize: 0
+        };
+        this.lastStats = dummy;
+        return dummy;
+      }
+      const freq = this.computeFrequencies(subset);
+      this.lastStats = freq;
+      return freq;
+    }
+
+    generateSingleVariant(mainWeightsBase, euroWeightsBase, includeEuro, forceUniform = false) {
+      const main = [];
+      const mainWeights = mainWeightsBase.slice();
+      if (forceUniform) {
+        for (let i = 1; i <= 50; i++) mainWeights[i] = 1;
+      }
+
+      for (let i = 0; i < 5; i++) {
+        const n = this.weightedPick(mainWeights);
+        if (!n) {
+          return null;
+        }
+        main.push(n);
+        mainWeights[n] = 0;
+      }
+      main.sort((a,b) => a-b);
+
+      const euro = [];
+      if (includeEuro) {
+        const euroWeights = euroWeightsBase.slice();
+        if (forceUniform) {
+          for (let i = 1; i <= 12; i++) euroWeights[i] = 1;
+        }
+        for (let i = 0; i < 2; i++) {
+          const e = this.weightedPick(euroWeights);
+          if (!e) {
+            return null;
+          }
+          euro.push(e);
+          euroWeights[e] = 0;
+        }
+        euro.sort((a,b) => a-b);
+      }
+
+      return { main, euro };
+    }
+
+    weightedPick(weights) {
+      let total = 0;
+      for (let i = 1; i < weights.length; i++) {
+        total += Math.max(0, weights[i]);
+      }
+      if (total <= 0) return null;
+      let r = Math.random() * total;
+      for (let i = 1; i < weights.length; i++) {
+        r -= Math.max(0, weights[i]);
+        if (r <= 0) return i;
+      }
+      return weights.length - 1;
+    }
+
+    variantExists(variant, list) {
+      return list.some(v =>
+        this.arraysEqual(v.main, variant.main) &&
+        this.arraysEqual(v.euro, variant.euro)
+      );
+    }
+
+    arraysEqual(a, b) {
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
+    }
+
+    isVariantDiverse(newVariant, existingList) {
+      for (const v of existingList) {
+        const mainMatches = this.countIntersection(v.main, newVariant.main);
+        if (mainMatches >= 4) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    countIntersection(a, b) {
+      const setA = new Set(a);
+      let count = 0;
+      for (const x of b) {
+        if (setA.has(x)) count++;
+      }
+      return count;
+    }
+
+    renderGeneratedVariants() {
+      if (!this.generatedVariants.length) {
+        this.generatorOutputWrapper.style.display = "none";
+        this.generatorDownload.style.display = "none";
+        return;
+      }
+
+      this.generatorBody.innerHTML = "";
+      this.generatedVariants.forEach((v, idx) => {
+        const tr = document.createElement("tr");
+        const mainHtml = v.main.map(n => `<span class="ball">${n}</span>`).join(" ");
+        const euroHtml = v.euro && v.euro.length
+          ? v.euro.map(n => `<span class="ball ball-euro">${n}</span>`).join(" ")
+          : '<span class="muted">–</span>';
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td><div class="numbers-row">${mainHtml}</div></td>
+          <td><div class="numbers-row">${euroHtml}</div></td>
+        `;
+        this.generatorBody.appendChild(tr);
+      });
+
+      this.generatorOutputWrapper.style.display = "block";
+      this.generatorDownload.style.display = "flex";
+    }
+
+    downloadGenerated(type) {
+      if (!this.generatedVariants.length) return;
+      if (type === "txt") {
+        let lines = [];
+        this.generatedVariants.forEach(v => {
+          const main = v.main.join(" ");
+          const euro = (v.euro && v.euro.length) ? v.euro.join(" ") : "";
+          lines.push(main + (euro ? " | " + euro : ""));
+        });
+        const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+        this.triggerDownload(blob, "eurojackpot_varianten.txt");
+      } else if (type === "csv") {
+        let lines = [];
+        lines.push("Z1;Z2;Z3;Z4;Z5;E1;E2");
+        this.generatedVariants.forEach(v => {
+          const parts = [...v.main];
+          if (v.euro && v.euro.length) {
+            parts.push(...v.euro);
+          } else {
+            parts.push("", "");
+          }
+          lines.push(parts.join(";"));
+        });
+        const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+        this.triggerDownload(blob, "eurojackpot_varianten.csv");
+      }
+    }
+
+    triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    updateVariantSourceUI() {
+      const source = this.getVariantSource();
+      if (source === "manual") {
+        this.manualVariantsRow.style.display = "block";
+      } else {
+        this.manualVariantsRow.style.display = "none";
+      }
+    }
+
+    getVariantSource() {
+      let value = "generated";
+      Array.from(this.variantSourceRadios).forEach(radio => {
+        if (radio.checked) value = radio.value;
+      });
+      return value;
+    }
+
+    analyzeVariants() {
+      if (!this.draws.length) {
+        this.updateAnalysisStatus("Bitte zuerst das Archiv laden.", "error");
+        this.analysisResults.style.display = "none";
+        return;
+      }
+
+      const source = this.getVariantSource();
+      const includeEuro = this.analysisIncludeEuroCheckbox.checked;
+
+      let variants = [];
+      if (source === "generated") {
+        if (!this.generatedVariants.length) {
+          this.updateAnalysisStatus("Es sind noch keine generierten Varianten vorhanden.", "warn");
+          this.analysisResults.style.display = "none";
+          return;
+        }
+        variants = this.generatedVariants.slice();
+      } else {
+        const text = this.manualVariantsTextarea.value.trim();
+        if (!text) {
+          this.updateAnalysisStatus("Bitte trage manuelle Varianten ein.", "warn");
+          this.analysisResults.style.display = "none";
+          return;
+        }
+        variants = this.parseManualVariants(text);
+        if (!variants.length) {
+          this.updateAnalysisStatus("Keine gültigen Varianten in den eingegebenen Zeilen gefunden.", "error");
+          this.analysisResults.style.display = "none";
+          return;
+        }
+      }
+
+      this.updateAnalysisStatus("Analyse läuft …", "info", true);
+
+      const results = [];
+      for (const v of variants) {
+        const stats = this.analyzeSingleVariant(v, includeEuro);
+        results.push({ variant: v, stats });
+      }
+
+      this.renderAnalysis(results, includeEuro);
+      this.updateAnalysisStatus(
+        "Analyse abgeschlossen – " + results.length + " Varianten ausgewertet.",
+        "ok"
+      );
+    }
+
+    parseManualVariants(text) {
+      const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+      const variants = [];
+      for (const line of lines) {
+        const nums = (line.match(/\d+/g) || []).map(Number);
+        if (nums.length < 5) continue;
+
+        const main = nums.slice(0, 5);
+        const euro = nums.slice(5, 7);
+
+        if (!main.every(n => n >= 1 && n <= 50)) continue;
+        if (euro.length && !euro.every(e => e >= 1 && e <= 12)) continue;
+
+        main.sort((a,b) => a-b);
+        euro.sort((a,b) => a-b);
+
+        variants.push({ main, euro });
+      }
+      return variants;
+    }
+
+    analyzeSingleVariant(variant, includeEuro) {
+      let hits3 = 0, hits4 = 0, hits5 = 0;
+      const euroHitMap = {}; // key: "5+2", value: count
+
+      for (const draw of this.draws) {
+        const mainMatches = this.countIntersection(variant.main, draw.main);
+        if (mainMatches < 3) continue;
+
+        if (mainMatches === 3) hits3++;
+        else if (mainMatches === 4) hits4++;
+        else if (mainMatches === 5) hits5++;
+
+        if (includeEuro && variant.euro && variant.euro.length) {
+          const euroMatches = this.countIntersection(variant.euro, draw.euro);
+          const key = mainMatches + "+" + euroMatches;
+          euroHitMap[key] = (euroHitMap[key] || 0) + 1;
+        }
+      }
+
+      return { hits3, hits4, hits5, euroHitMap };
+    }
+
+    renderAnalysis(results, includeEuro) {
+      this.analysisBody.innerHTML = "";
+      results.forEach((item, idx) => {
+        const v = item.variant;
+        const stats = item.stats;
+        const mainStr = v.main.join(" ");
+        const euroStr = v.euro && v.euro.length ? " | " + v.euro.join(" ") : "";
+        let euroHitsText = "–";
+        if (includeEuro) {
+          const parts = [];
+          Object.keys(stats.euroHitMap)
+            .sort((a,b) => {
+              const [am,ae] = a.split("+").map(Number);
+              const [bm,be] = b.split("+").map(Number);
+              if (am !== bm) return bm - am;
+              return be - ae;
+            })
+            .forEach(key => {
+              parts.push(key + " (" + stats.euroHitMap[key] + "×)");
+            });
+          euroHitsText = parts.length ? parts.join(", ") : "–";
+        }
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${mainStr}${euroStr}</td>
+          <td>${stats.hits3}</td>
+          <td>${stats.hits4}</td>
+          <td>${stats.hits5}</td>
+          <td>${euroHitsText}</td>
+        `;
+        this.analysisBody.appendChild(tr);
+      });
+
+      this.thEuroHits.style.display = includeEuro ? "" : "none";
+      this.analysisResults.style.display = "block";
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const app = new EurojackpotApp();
+    app.init();
+  });
+})();
+</script>
+</body>
+</html>
