@@ -5,7 +5,7 @@
   <title>Eurojackpot Analyse & Varianten-Tool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- JSZip wird bei Bedarf dynamisch nachgeladen; dieses Script ist nur ein Fallback -->
+  <!-- Fallback: JSZip; zusätzlich wird im Code bei Bedarf dynamisch nachgeladen -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <style>
@@ -17,65 +17,190 @@
       --r-lg:18px;--r-md:12px;--r-pill:999px;
     }
     *{box-sizing:border-box}
-    html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;background:radial-gradient(circle at top,#111827 0,#020617 50%,#000 100%);color:var(--txt);-webkit-font-smoothing:antialiased}
+    html,body{
+      margin:0;padding:0;
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+      background:radial-gradient(circle at top,#111827 0,#020617 50%,#000 100%);
+      color:var(--txt);-webkit-font-smoothing:antialiased
+    }
     body{min-height:100vh;display:flex;align-items:stretch;justify-content:center;padding:12px}
-    .shell{max-width:1200px;width:100%;border-radius:24px;background:linear-gradient(135deg,#020617,#020617);border:1px solid rgba(148,163,184,.35);box-shadow:0 24px 60px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden}
-    header{padding:16px 20px;border-bottom:1px solid rgba(31,41,55,.9);display:flex;gap:12px;justify-content:space-between;align-items:center;background:radial-gradient(circle at 0 0,rgba(59,130,246,.5),transparent 60%)}
-    .logo{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 30% 20%,#f9fafb,#60a5fa);display:flex;align-items:center;justify-content:center;color:#020617;font-weight:800;box-shadow:0 0 0 1px rgba(15,23,42,.9),0 10px 25px rgba(15,23,42,.9)}
-    .title h1{margin:0;font-size:18px;letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
-    .badge{font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid rgba(148,163,184,.6);background:rgba(15,23,42,.9);color:var(--muted)}
+    .shell{
+      max-width:1200px;width:100%;border-radius:24px;
+      background:linear-gradient(135deg,#020617,#020617);
+      border:1px solid rgba(148,163,184,.35);
+      box-shadow:0 24px 60px rgba(0,0,0,.7);
+      display:flex;flex-direction:column;overflow:hidden
+    }
+    header{
+      padding:16px 20px;border-bottom:1px solid rgba(31,41,55,.9);
+      display:flex;gap:12px;justify-content:space-between;align-items:center;
+      background:radial-gradient(circle at 0 0,rgba(59,130,246,.5),transparent 60%)
+    }
+    .logo{
+      width:34px;height:34px;border-radius:50%;
+      background:radial-gradient(circle at 30% 20%,#f9fafb,#60a5fa);
+      display:flex;align-items:center;justify-content:center;
+      color:#020617;font-weight:800;
+      box-shadow:0 0 0 1px rgba(15,23,42,.9),0 10px 25px rgba(15,23,42,.9)
+    }
+    .title h1{
+      margin:0;font-size:18px;letter-spacing:.07em;text-transform:uppercase;
+      display:flex;align-items:center;gap:8px
+    }
+    .badge{
+      font-size:11px;padding:3px 8px;border-radius:999px;
+      border:1px solid rgba(148,163,184,.6);
+      background:rgba(15,23,42,.9);color:var(--muted)
+    }
     .title small{display:block;font-size:12px;color:var(--soft);margin-top:2px}
-    .pill-info{font-size:11px;padding:6px 10px;border-radius:999px;border:1px solid rgba(148,163,184,.5);display:flex;align-items:center;gap:6px;background:rgba(15,23,42,.95)}
-    .pill-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(34,197,94,.25)}
-    .btn{border:none;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:radial-gradient(circle at 0 0,#fff,#93c5fd);color:#020617;box-shadow:0 10px 25px rgba(37,99,235,.7),0 0 0 1px rgba(191,219,254,.8);transition:.15s}
+    .pill-info{
+      font-size:11px;padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(148,163,184,.5);
+      display:flex;align-items:center;gap:6px;background:rgba(15,23,42,.95)
+    }
+    .pill-dot{
+      width:7px;height:7px;border-radius:50%;
+      background:var(--ok);box-shadow:0 0 0 4px rgba(34,197,94,.25)
+    }
+    .btn{
+      border:none;border-radius:999px;padding:7px 14px;
+      font-size:13px;font-weight:500;cursor:pointer;
+      display:inline-flex;align-items:center;gap:6px;
+      background:radial-gradient(circle at 0 0,#fff,#93c5fd);
+      color:#020617;
+      box-shadow:0 10px 25px rgba(37,99,235,.7),0 0 0 1px rgba(191,219,254,.8);
+      transition:.15s
+    }
     .btn-sm{padding:5px 12px;font-size:12px}
-    .btn-outline{background:rgba(15,23,42,.96);color:var(--muted);box-shadow:none;border:1px solid rgba(148,163,184,.5)}
+    .btn-outline{
+      background:rgba(15,23,42,.96);color:var(--muted);
+      box-shadow:none;border:1px solid rgba(148,163,184,.5)
+    }
     .btn-outline:hover{background:#020617;color:var(--txt)}
-    .btn:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(37,99,235,.85),0 0 0 1px rgba(219,234,254,.9)}
+    .btn:hover{
+      transform:translateY(-1px);
+      box-shadow:0 14px 30px rgba(37,99,235,.85),0 0 0 1px rgba(219,234,254,.9)
+    }
     .btn:active{transform:translateY(0);box-shadow:0 8px 18px rgba(30,64,175,.9)}
-    main{display:grid;grid-template-columns:260px minmax(0,1fr);gap:14px;padding:14px 16px 16px}
+    main{
+      display:grid;grid-template-columns:260px minmax(0,1fr);
+      gap:14px;padding:14px 16px 16px
+    }
     aside{border-right:1px solid rgba(31,41,55,.9);padding-right:12px;margin-right:-4px}
-    .card{background:linear-gradient(135deg,#020617,#020617);border-radius:var(--r-lg);border:1px solid rgba(31,41,55,.95);box-shadow:0 18px 40px rgba(0,0,0,.75);padding:12px 12px 14px}
-    .card h2{margin:0 0 6px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#e5e7eb}
+    .card{
+      background:linear-gradient(135deg,#020617,#020617);
+      border-radius:var(--r-lg);
+      border:1px solid rgba(31,41,55,.95);
+      box-shadow:0 18px 40px rgba(0,0,0,.75);
+      padding:12px 12px 14px
+    }
+    .card h2{
+      margin:0 0 6px;font-size:14px;text-transform:uppercase;
+      letter-spacing:.08em;color:#e5e7eb
+    }
     .card p{margin:0;font-size:12px;color:var(--soft)}
     .note{font-size:11px;margin-top:6px;color:var(--muted)}
-    .risk{margin-top:10px;font-size:11px;padding:7px 8px;border-radius:var(--r-md);border:1px dashed rgba(248,250,252,.3);background:linear-gradient(135deg,rgba(127,29,29,.8),rgba(15,23,42,.95));color:#fef9c3}
+    .risk{
+      margin-top:10px;font-size:11px;padding:7px 8px;
+      border-radius:var(--r-md);border:1px dashed rgba(248,250,252,.3);
+      background:linear-gradient(135deg,rgba(127,29,29,.8),rgba(15,23,42,.95));
+      color:#fef9c3
+    }
     .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-    .card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
-    .chip{font-size:11px;padding:3px 7px;border-radius:999px;border:1px solid rgba(75,85,99,.9);background:rgba(15,23,42,.9);color:var(--muted)}
+    .card-header{
+      display:flex;justify-content:space-between;
+      align-items:flex-start;gap:8px;margin-bottom:6px
+    }
+    .chip{
+      font-size:11px;padding:3px 7px;border-radius:999px;
+      border:1px solid rgba(75,85,99,.9);
+      background:rgba(15,23,42,.9);color:var(--muted)
+    }
     .sub{font-size:11px;color:var(--soft)}
     .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
     .group{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
     label{font-size:11px;color:var(--soft)}
     input[type="number"],input[type="date"],input[type="file"],select,textarea{
-      background:#020617;border-radius:var(--r-md);border:1px solid rgba(55,65,81,.95);color:var(--txt);
+      background:#020617;border-radius:var(--r-md);
+      border:1px solid rgba(55,65,81,.95);color:var(--txt);
       font-size:12px;padding:6px 8px;outline:none;transition:.16s
     }
-    input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 1px rgba(59,130,246,.7)}
+    input:focus,select:focus,textarea:focus{
+      border-color:var(--accent);box-shadow:0 0 0 1px rgba(59,130,246,.7)
+    }
     textarea{min-height:100px;resize:vertical}
-    .switch{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--soft);cursor:pointer}
+    .switch{
+      display:inline-flex;align-items:center;gap:6px;
+      font-size:11px;color:var(--soft);cursor:pointer
+    }
     .switch input{display:none}
-    .sw-pill{width:28px;height:16px;border-radius:999px;background:#020617;border:1px solid rgba(75,85,99,.9);position:relative}
-    .sw-thumb{width:12px;height:12px;border-radius:50%;background:#e5e7eb;position:absolute;top:1px;left:1px;transition:.16s}
-    .switch input:checked + .sw-pill{background:linear-gradient(135deg,#93c5fd,#2563eb);border-color:rgba(191,219,254,.9)}
-    .switch input:checked + .sw-pill .sw-thumb{transform:translateX(10px);background:#020617;box-shadow:0 0 0 3px rgba(191,219,254,.7)}
+    .sw-pill{
+      width:28px;height:16px;border-radius:999px;
+      background:#020617;border:1px solid rgba(75,85,99,.9);position:relative
+    }
+    .sw-thumb{
+      width:12px;height:12px;border-radius:50%;
+      background:#e5e7eb;position:absolute;top:1px;left:1px;transition:.16s
+    }
+    .switch input:checked + .sw-pill{
+      background:linear-gradient(135deg,#93c5fd,#2563eb);
+      border-color:rgba(191,219,254,.9)
+    }
+    .switch input:checked + .sw-pill .sw-thumb{
+      transform:translateX(10px);background:#020617;
+      box-shadow:0 0 0 3px rgba(191,219,254,.7)
+    }
     .status{font-size:11px;color:var(--soft);margin-top:3px}
     .status .ok{color:var(--ok)}.status .err{color:var(--danger)}.status .warn{color:var(--warn)}
-    .loader{width:14px;height:14px;border-radius:50%;border:2px solid rgba(148,163,184,.6);border-top-color:#e5e7eb;display:inline-block;animation:spin .7s linear infinite;margin-right:4px}
+    .loader{
+      width:14px;height:14px;border-radius:50%;
+      border:2px solid rgba(148,163,184,.6);border-top-color:#e5e7eb;
+      display:inline-block;animation:spin .7s linear infinite;margin-right:4px
+    }
     @keyframes spin{to{transform:rotate(360deg)}}
     table{width:100%;border-collapse:collapse;font-size:11px;color:var(--muted)}
-    th,td{padding:5px 7px;border-bottom:1px solid rgba(31,41,55,.9);white-space:nowrap;text-align:left}
+    th,td{
+      padding:5px 7px;border-bottom:1px solid rgba(31,41,55,.9);
+      white-space:nowrap;text-align:left
+    }
     thead{background:#020617;position:sticky;top:0;z-index:1}
-    .tbl-wrap{margin-top:6px;max-height:230px;overflow:auto;border-radius:12px;border:1px solid rgba(31,41,55,.95);background:#020617}
+    .tbl-wrap{
+      margin-top:6px;max-height:230px;overflow:auto;
+      border-radius:12px;border:1px solid rgba(31,41,55,.95);
+      background:#020617
+    }
     .balls{display:flex;flex-wrap:wrap;gap:3px}
-    .ball{min-width:20px;height:20px;border-radius:999px;background:radial-gradient(circle at 30% 20%,#f9fafb,#9ca3af);color:#020617;font-size:11px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(148,163,184,.8)}
-    .ball.euro{background:radial-gradient(circle at 30% 20%,#fef9c3,#fbbf24);border-color:rgba(234,179,8,.9)}
-    .pill-mini{border-radius:999px;padding:2px 6px;border:1px solid rgba(75,85,99,.9);font-size:10px}
+    .ball{
+      min-width:20px;height:20px;border-radius:999px;
+      background:radial-gradient(circle at 30% 20%,#f9fafb,#9ca3af);
+      color:#020617;font-size:11px;display:flex;
+      align-items:center;justify-content:center;
+      border:1px solid rgba(148,163,184,.8)
+    }
+    .ball.euro{
+      background:radial-gradient(circle at 30% 20%,#fef9c3,#fbbf24);
+      border-color:rgba(234,179,8,.9)
+    }
+    .pill-mini{
+      border-radius:999px;padding:2px 6px;
+      border:1px solid rgba(75,85,99,.9);font-size:10px
+    }
     .hot{background:rgba(127,29,29,.7);border-color:rgba(248,113,113,.9);color:#fee2e2}
     .cold{background:rgba(30,64,175,.7);border-color:rgba(59,130,246,.9);color:#dbeafe}
-    footer{padding:8px 14px 10px;border-top:1px solid rgba(31,41,55,.95);display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--soft)}
-    .fbadge{padding:3px 8px;border-radius:999px;border:1px solid rgba(75,85,99,.9);background:#020617;color:var(--muted)}
-    .link{color:#bfdbfe;text-decoration:none;border-bottom:1px dashed rgba(191,219,254,.6)}
+    footer{
+      padding:8px 14px 10px;border-top:1px solid rgba(31,41,55,.95);
+      display:flex;justify-content:space-between;gap:8px;
+      font-size:11px;color:var(--soft)
+    }
+    .fbadge{
+      padding:3px 8px;border-radius:999px;
+      border:1px solid rgba(75,85,99,.9);
+      background:#020617;color:var(--muted)
+    }
+    .link{
+      color:#bfdbfe;text-decoration:none;
+      border-bottom:1px dashed rgba(191,219,254,.6)
+    }
     .link:hover{border-bottom-style:solid}
     @media(max-width:950px){
       main{grid-template-columns:minmax(0,1fr);padding:12px}
@@ -109,13 +234,13 @@
       <div class="card">
         <h2>Kurzanleitung</h2>
         <p>
-          Dieses Tool lädt das Eurojackpot-Archiv direkt vom offiziellen URL
-          (ZIP von Lotto-Bayern) – über mehrere Proxys – entpackt es,
-          analysiert es und erzeugt darauf basierend Varianten.
+          Dieses Tool lädt das Eurojackpot-Archiv direkt vom offiziellen Lotto-Bayern-URL
+          (ZIP), versucht mehrere CORS-Proxys, entpackt die ZIP im Browser und
+          analysiert die Ziehungen.
         </p>
         <div class="note">
-          Falls der direkte Download von deinem Browser blockiert wird
-          (CORS), versucht das Tool automatisch mehrere Fallback-Proxys.
+          Wenn alle Proxys scheitern, bekommst du eine Fehlermeldung.
+          Du kannst dann die ZIP oder TXT/CSV manuell herunterladen und hier laden.
         </div>
         <div class="risk">
           ⚠️ <strong>Wichtig:</strong> Jede Zahlenkombination ist mathematisch gleich wahrscheinlich.
@@ -140,18 +265,19 @@
               <label>Automatisch vom offiziellen Link</label>
               <button class="btn btn-sm" id="btnLoadRemote">📥 Archiv herunterladen &amp; entpacken</button>
               <div class="note">
-                URL: <code style="font-size:10px">https://www.lotto-bayern.de/static/gamebroker_2/de/download_files/archiv_eurojackpot.zip</code><br>
+                URL:<br>
+                <code style="font-size:10px">https://www.lotto-bayern.de/static/gamebroker_2/de/download_files/archiv_eurojackpot.zip</code><br>
                 Es werden nacheinander mehrere CORS-Proxys ausprobiert, bis eine Variante funktioniert.
               </div>
             </div>
           </div>
           <div class="row">
             <div class="group">
-              <label>Datei alternativ manuell auswählen (ZIP/TXT/CSV)</label>
+              <label>Datei manuell auswählen (ZIP / TXT / CSV)</label>
               <input id="fileInput" type="file" accept=".zip,.txt,.csv">
               <div class="note">
-                Wenn der Browser gar nichts zulässt: ZIP von Lotto-Bayern manuell speichern und hier auswählen
-                – oder die entpackte TXT/CSV.
+                Falls alle Proxys scheitern: ZIP von Lotto-Bayern herunterladen und hier auswählen – 
+                oder die entpackte TXT/CSV.
               </div>
             </div>
           </div>
@@ -343,7 +469,7 @@
   const ARCHIVE_URL = "https://www.lotto-bayern.de/static/gamebroker_2/de/download_files/archiv_eurojackpot.zip";
 
   const app = {
-    draws: [],   // {date: "YYYY-MM-DD", main:[5], euro:[2]}
+    draws: [],   // {date: "YYYY-MM-DD" | null, main:[5], euro:[2]}
     generated: [],
     stats: null
   };
@@ -393,22 +519,28 @@
     let lastErr = null;
     for(const u of trials){
       try{
+        console.log("[Archiv] Versuche URL:", u);
         const res = await fetch(u);
         if(!res.ok) throw new Error("HTTP "+res.status);
         const ct = (res.headers.get("content-type") || "").toLowerCase();
-        if(ct.includes("zip") || u.endsWith(".zip")){
+        if(ct.includes("zip") || u.toLowerCase().endsWith(".zip")){
           const ok = await ensureJSZip();
           if(!ok) throw new Error("JSZip konnte nicht geladen werden.");
           const blob = await res.blob();
           const zip = await JSZip.loadAsync(blob);
           const entries = Object.values(zip.files);
-          let entry = entries.find(f=>/\.txt$/i.test(f.name)) || entries.find(f=>/\.csv$/i.test(f.name)) || entries[0];
+          let entry = entries.find(f=>/\.txt$/i.test(f.name)) ||
+                      entries.find(f=>/\.csv$/i.test(f.name)) ||
+                      entries[0];
           if(!entry) throw new Error("Keine Datei im ZIP gefunden.");
+          console.log("[Archiv] Nutze Datei aus ZIP:", entry.name);
           return await entry.async("string");
         }else{
+          console.log("[Archiv] Kein ZIP, lese als Text.");
           return await res.text();
         }
       }catch(e){
+        console.warn("[Archiv] Fehler mit", u, e);
         lastErr = e;
       }
     }
@@ -418,60 +550,57 @@
   /* ===== Parsing ========================================================= */
 
   function parseArchiveText(txt){
-    txt = txt.replace(/^\\uFEFF/,"");
-    const lines = txt.replace(/\\r\\n?/g,"\\n").split("\\n").map(l=>l.trim()).filter(Boolean);
-    const cleaned = lines.filter(l => (l.match(/\\d+/g)||[]).length >= 7);
+    txt = txt.replace(/^\uFEFF/,"");
+    const lines = txt.replace(/\r\n?/g,"\n").split("\n").map(l=>l.trim()).filter(Boolean);
+    const draws = [];
 
-    const regDMY=/^(\\d{1,2})[.\\-/](\\d{1,2})[.\\-/](\\d{2,4})$/;
-    const regYMD=/^(\\d{4})[.\\-/](\\d{1,2})[.\\-/](\\d{1,2})$/;
+    for(const line of lines){
+      if(/tag\s+monat\s+jahr/i.test(line)) continue;          // Kopfzeile
+      if(/ZahlA1/i.test(line)) continue;
 
-    function iso(y,m,d){
-      const dt = new Date(+y,+m-1,+d);
-      if(isNaN(dt.getTime())) return null;
-      return dt.toISOString().slice(0,10);
-    }
+      const nums = (line.match(/\d+/g)||[]).map(Number);
+      if(nums.length < 7) continue;
 
-    function parseLine(line){
-      const tokens = line.split(/;|,|\\t|\\s+/).filter(Boolean);
-      let date = null, rest = [];
+      // Lotto-Bayern-Format: Tag Monat Jahr + 5 Hauptzahlen + 2 Eurozahlen
+      // -> Wir nutzen immer die letzten 7 Zahlen als 5 Haupt + 2 Euro
+      const last7 = nums.slice(-7);
+      if(last7.length !== 7) continue;
+      const main = last7.slice(0,5);
+      const euro = last7.slice(5,7);
 
-      if(tokens.length && regDMY.test(tokens[0])){
-        const m = tokens[0].match(regDMY);
-        date = iso(m[3],m[2],m[1]);
-        rest = tokens.slice(1);
-      }else if(tokens.length && regYMD.test(tokens[0])){
-        const m = tokens[0].match(regYMD);
-        date = iso(m[1],m[2],m[3]);
-        rest = tokens.slice(1);
-      }else{
-        rest = tokens.slice(0);
-      }
+      if(!main.every(n=>n>=1 && n<=50)) continue;
+      if(!euro.every(n=>n>=1 && n<=12)) continue;
 
-      const nums = rest.map(Number).filter(n => !Number.isNaN(n));
-      if(!date){
-        const only = (line.match(/\\d+/g)||[]).map(Number);
-        if(only.length>=3){
-          const [a,b,c] = only.slice(0,3);
-          const d = iso(c,b,a);
-          if(d) date = d;
+      main.sort((a,b)=>a-b);
+      euro.sort((a,b)=>a-b);
+
+      // Datum aus den ersten 3 Zahlen (Tag, Monat, Jahr)
+      let date = null;
+      if(nums.length >= 3){
+        const d = nums[0], m = nums[1], y = nums[2];
+        if(y >= 2000 && y <= 2100 && m>=1 && m<=12 && d>=1 && d<=31){
+          const dt = new Date(y, m-1, d);
+          if(!isNaN(dt.getTime())){
+            date = dt.toISOString().slice(0,10);
+          }
         }
       }
-      const main = nums.filter(n=>n>=1 && n<=50).slice(0,5).sort((a,b)=>a-b);
-      const euro = nums.filter(n=>n>=1 && n<=12).slice(0,2).sort((a,b)=>a-b);
-      if(!date || main.length!==5 || euro.length!==2) return null;
-      return {date,main,euro};
+
+      draws.push({date, main, euro});
     }
 
-    const draws = [];
-    cleaned.forEach(l=>{
-      const r = parseLine(l);
-      if(r) draws.push(r);
-    });
-    if(!draws.length) throw new Error("Keine gültigen Ziehungen erkannt.");
+    if(!draws.length) throw new Error("Keine gültigen Ziehungen im Archiv gefunden.");
 
-    draws.sort((a,b)=>a.date.localeCompare(b.date));
+    draws.sort((a,b)=>{
+      if(!a.date && !b.date) return 0;
+      if(!a.date) return -1;
+      if(!b.date) return 1;
+      return a.date.localeCompare(b.date);
+    });
+
     app.draws = draws;
     app.stats = null;
+    console.log("[Archiv] Parsed draws:", draws.length);
   }
 
   async function loadArchiveRemote(){
@@ -504,7 +633,9 @@
           const buf = await file.arrayBuffer();
           const zip = await JSZip.loadAsync(buf);
           const entries = Object.values(zip.files);
-          let entry = entries.find(f=>/\\.txt$/i.test(f.name)) || entries.find(f=>/\\.csv$/i.test(f.name)) || entries[0];
+          let entry = entries.find(f=>/\.txt$/i.test(f.name)) ||
+                      entries.find(f=>/\.csv$/i.test(f.name)) ||
+                      entries[0];
           if(!entry) throw new Error("Keine TXT/CSV in der ZIP gefunden.");
           const text = await entry.async("string");
           parseArchiveText(text);
@@ -623,7 +754,7 @@
     subset.forEach(d=>{
       d.main.forEach(m=>{
         mainFreq[m]++;
-        const idx = Math.floor((m-1)/10);
+        const idx=Math.floor((m-1)/10);
         ranges[idx]++;
       });
     });
@@ -730,7 +861,7 @@
         const euro = v.euro && v.euro.length ? " | "+v.euro.join(" ") : "";
         return main+euro;
       });
-      const blob = new Blob([lines.join("\\n")],{type:"text/plain;charset=utf-8"});
+      const blob = new Blob([lines.join("\n")],{type:"text/plain;charset=utf-8"});
       triggerDownload(blob,"eurojackpot_varianten.txt");
     }else{
       const lines = ["Z1;Z2;Z3;Z4;Z5;E1;E2"];
@@ -739,7 +870,7 @@
         if(v.euro && v.euro.length) arr.push(...v.euro); else arr.push("","");
         lines.push(arr.join(";"));
       });
-      const blob = new Blob([lines.join("\\n")],{type:"text/csv;charset=utf-8"});
+      const blob = new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8"});
       triggerDownload(blob,"eurojackpot_varianten.csv");
     }
   }
@@ -756,10 +887,10 @@
   /* ===== Analyse ========================================================= */
 
   function parseManualVariants(text){
-    const lines = text.split(/\\r?\\n/).filter(l=>l.trim().length>0);
+    const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
     const res = [];
     for(const line of lines){
-      const nums = (line.match(/\\d+/g)||[]).map(Number);
+      const nums = (line.match(/\d+/g)||[]).map(Number);
       if(nums.length<5) continue;
       const arr = nums.slice(-7);
       const main = arr.slice(0,5);
