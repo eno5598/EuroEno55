@@ -2,10 +2,8 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Eurojackpot Analyse & Varianten-Tool</title>
+  <title>Eurojackpot Analyse & Systemspiel-Tool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- JSZip Fallback -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <style>
@@ -202,6 +200,21 @@
       border-bottom:1px dashed rgba(191,219,254,.6)
     }
     .link:hover{border-bottom-style:solid}
+    .tabs{
+      display:inline-flex;border-radius:999px;
+      background:rgba(15,23,42,.9);border:1px solid rgba(55,65,81,.9);
+      padding:2px
+    }
+    .tab-btn{
+      border:none;background:transparent;color:var(--muted);
+      font-size:11px;padding:4px 10px;border-radius:999px;
+      cursor:pointer;min-width:90px
+    }
+    .tab-btn.active{
+      background:radial-gradient(circle at 0 0,#fff,#93c5fd);
+      color:#020617;font-weight:600;
+      box-shadow:0 0 0 1px rgba(191,219,254,.9)
+    }
     @media(max-width:950px){
       main{grid-template-columns:minmax(0,1fr);padding:12px}
       aside{border-right:none;border-bottom:1px solid rgba(31,41,55,.9);padding-bottom:10px;margin-right:0}
@@ -219,8 +232,8 @@
     <div style="display:flex;gap:12px;align-items:center">
       <div class="logo">EJ</div>
       <div class="title">
-        <h1>Eurojackpot <span class="badge">Analyse &amp; Varianten-Tool</span></h1>
-        <small>Archiv, Statistik &amp; Varianten – alles lokal im Browser.</small>
+        <h1>Eurojackpot <span class="badge">Analyse &amp; Systemspiel-Tool</span></h1>
+        <small>Archiv, Statistik, Standardtipps &amp; Systemscheine – alles lokal im Browser.</small>
       </div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -234,17 +247,17 @@
       <div class="card">
         <h2>Kurzanleitung</h2>
         <p>
-          Dieses Tool lädt das Eurojackpot-Archiv direkt vom offiziellen Lotto-Bayern-URL
-          (ZIP), versucht mehrere CORS-Proxys, entpackt die ZIP im Browser und
-          analysiert die Ziehungen.
+          Das Tool lädt das Eurojackpot-Archiv direkt von Lotto-Bayern (ZIP),
+          versucht mehrere CORS-Proxys, entpackt die ZIP im Browser und
+          analysiert alle Ziehungen.
         </p>
         <div class="note">
-          Das Archiv wird nach dem Laden im Browser gespeichert (localStorage).
-          Beim nächsten Öffnen wird es automatisch wiederhergestellt.
+          Das Archiv wird nach dem Laden im Browser gespeichert (localStorage)
+          und beim nächsten Öffnen automatisch wiederhergestellt.
         </div>
         <div class="risk">
           ⚠️ <strong>Wichtig:</strong> Jede Zahlenkombination ist mathematisch gleich wahrscheinlich.
-          Die Auswertungen sind nur Statistik, keine Gewinn-Strategie.
+          Die Auswertungen &amp; Systeme sind reine Statistik, keine Gewinn-Garantie.
         </div>
       </div>
     </aside>
@@ -267,7 +280,7 @@
               <div class="note">
                 URL:<br>
                 <code style="font-size:10px">https://www.lotto-bayern.de/static/gamebroker_2/de/download_files/archiv_eurojackpot.zip</code><br>
-                Es werden nacheinander mehrere CORS-Proxys ausprobiert, bis eine Variante funktioniert.
+                Es werden nacheinander mehrere CORS-Proxys ausprobiert.
               </div>
             </div>
           </div>
@@ -276,8 +289,7 @@
               <label>Datei manuell auswählen (ZIP / TXT / CSV)</label>
               <input id="fileInput" type="file" accept=".zip,.txt,.csv">
               <div class="note">
-                Falls alle Proxys scheitern: ZIP von Lotto-Bayern herunterladen und hier auswählen – 
-                oder die entpackte TXT/CSV.
+                Alternativ: ZIP von Lotto-Bayern herunterladen oder entpackte TXT/CSV hier auswählen.
               </div>
             </div>
           </div>
@@ -289,7 +301,7 @@
           <div class="card-header">
             <div>
               <h2>Statistik</h2>
-              <div class="sub">Hot/Cold-Zahlen &amp; Bereichsquoten.</div>
+              <div class="sub">Hot/Cold-Zahlen &amp; Bereichsquoten aus dem Archiv.</div>
             </div>
             <span class="chip">Frequenzanalyse</span>
           </div>
@@ -331,63 +343,167 @@
         </div>
       </div>
 
+      <!-- GENERATOR / SYSTEM-TABS -->
       <div class="grid-2" id="generatorSection" style="margin-top:14px">
-        <!-- GENERATOR -->
+        <!-- LINKER TEIL: GENERATOR / SYSTEM -->
         <div class="card">
           <div class="card-header">
             <div>
-              <h2>Varianten-Generator</h2>
-              <div class="sub">Diversifizierte Varianten mit Statistikgewichtung oder Systemschein.</div>
+              <h2>Varianten &amp; Systeme</h2>
+              <div class="sub">Standardtipps (5/2) oder komplette Eurojackpot-Systemscheine.</div>
             </div>
-            <span class="chip">Smart-Generator</span>
-          </div>
-          <div class="row">
-            <div class="group">
-              <label>Anzahl Varianten (1–500)</label>
-              <input type="number" id="numVariants" value="20" min="1" max="500">
-            </div>
-            <div class="group">
-              <label>Ziehungsdatum (Info)</label>
-              <input type="date" id="drawDate">
+            <div class="tabs">
+              <button class="tab-btn active" id="tabStd">Standard</button>
+              <button class="tab-btn" id="tabSys">System</button>
             </div>
           </div>
-          <div class="row">
-            <div class="group">
-              <label>Modus</label>
-              <label class="switch">
-                <input id="genSystemMode" type="checkbox">
-                <span class="sw-pill"><span class="sw-thumb"></span></span>
-                <span>Systemschein-Modus aktivieren</span>
-              </label>
+
+          <!-- STANDARD-MODUS -->
+          <div id="stdPanel">
+            <div class="row">
+              <div class="group">
+                <label>Anzahl Standard-Varianten (1–500)</label>
+                <input type="number" id="numVariants" value="20" min="1" max="500">
+              </div>
+              <div class="group">
+                <label>Ziehungsdatum (Info)</label>
+                <input type="date" id="drawDate">
+              </div>
             </div>
-            <div class="group">
-              <label>Optionen (Standardmodus &amp; System)</label>
-              <label class="switch">
-                <input id="genIncludeEuro" type="checkbox" checked>
-                <span class="sw-pill"><span class="sw-thumb"></span></span>
-                <span>Eurozahlen generieren (Standardmodus)</span>
-              </label>
-              <label class="switch">
-                <input id="genUseStats" type="checkbox" checked>
-                <span class="sw-pill"><span class="sw-thumb"></span></span>
-                <span>Hot/Cold &amp; Bereiche nutzen</span>
-              </label>
-              <label class="switch">
-                <input id="genNoDup" type="checkbox" checked>
-                <span class="sw-pill"><span class="sw-thumb"></span></span>
-                <span>Duplikate verhindern</span>
-              </label>
-              <label class="switch">
-                <input id="genMaxDiff" type="checkbox" checked>
-                <span class="sw-pill"><span class="sw-thumb"></span></span>
-                <span>Abstand zwischen Varianten maximieren</span>
-              </label>
+            <div class="row">
+              <div class="group">
+                <label>Optionen (Standardmodus)</label>
+                <label class="switch">
+                  <input id="genIncludeEuro" type="checkbox" checked>
+                  <span class="sw-pill"><span class="sw-thumb"></span></span>
+                  <span>Eurozahlen generieren</span>
+                </label>
+                <label class="switch">
+                  <input id="genUseStats" type="checkbox" checked>
+                  <span class="sw-pill"><span class="sw-thumb"></span></span>
+                  <span>Hot/Cold &amp; Bereiche nutzen</span>
+                </label>
+                <label class="switch">
+                  <input id="genNoDup" type="checkbox" checked>
+                  <span class="sw-pill"><span class="sw-thumb"></span></span>
+                  <span>Duplikate verhindern</span>
+                </label>
+                <label class="switch">
+                  <input id="genMaxDiff" type="checkbox" checked>
+                  <span class="sw-pill"><span class="sw-thumb"></span></span>
+                  <span>Abstand zwischen Varianten maximieren</span>
+                </label>
+              </div>
+            </div>
+            <div class="row">
+              <button class="btn btn-sm" id="btnGen">Standard-Varianten generieren</button>
+              <div id="genStatus" class="status"></div>
             </div>
           </div>
-          <div class="row">
-            <button class="btn btn-sm" id="btnGen">Varianten generieren (Standardmodus)</button>
-            <div id="genStatus" class="status"></div>
+
+          <!-- SYSTEM-MODUS -->
+          <div id="sysPanel" style="display:none">
+            <div class="row">
+              <div class="group">
+                <label>Systemtyp (laut offizieller Systembroschüre)</label>
+                <select id="systemSpec">
+                  <optgroup label="5 aus 50">
+                    <option value="5/2">5/2 – 1 Spiel</option>
+                    <option value="5/3">5/3 – 3 Spiele</option>
+                    <option value="5/4">5/4 – 6 Spiele</option>
+                    <option value="5/5">5/5 – 10 Spiele</option>
+                    <option value="5/6">5/6 – 15 Spiele</option>
+                    <option value="5/7">5/7 – 21 Spiele</option>
+                    <option value="5/8">5/8 – 28 Spiele</option>
+                    <option value="5/9">5/9 – 36 Spiele</option>
+                    <option value="5/10">5/10 – 45 Spiele</option>
+                    <option value="5/11">5/11 – 55 Spiele</option>
+                    <option value="5/12">5/12 – 66 Spiele</option>
+                  </optgroup>
+                  <optgroup label="6 aus 50">
+                    <option value="6/2">6/2 – 6 Spiele</option>
+                    <option value="6/3">6/3 – 18 Spiele</option>
+                    <option value="6/4">6/4 – 36 Spiele</option>
+                    <option value="6/5">6/5 – 60 Spiele</option>
+                    <option value="6/6">6/6 – 90 Spiele</option>
+                    <option value="6/7">6/7 – 126 Spiele</option>
+                    <option value="6/8">6/8 – 168 Spiele</option>
+                    <option value="6/9">6/9 – 216 Spiele</option>
+                    <option value="6/10">6/10 – 270 Spiele</option>
+                    <option value="6/11">6/11 – 330 Spiele</option>
+                    <option value="6/12">6/12 – 396 Spiele</option>
+                  </optgroup>
+                  <optgroup label="7 aus 50">
+                    <option value="7/2" selected>7/2 – 21 Spiele</option>
+                    <option value="7/3">7/3 – 63 Spiele</option>
+                    <option value="7/4">7/4 – 126 Spiele</option>
+                    <option value="7/5">7/5 – 210 Spiele</option>
+                    <option value="7/6">7/6 – 315 Spiele</option>
+                    <option value="7/7">7/7 – 441 Spiele</option>
+                    <option value="7/8">7/8 – 588 Spiele</option>
+                  </optgroup>
+                  <optgroup label="8 aus 50">
+                    <option value="8/2">8/2 – 56 Spiele</option>
+                    <option value="8/3">8/3 – 168 Spiele</option>
+                    <option value="8/4">8/4 – 336 Spiele</option>
+                    <option value="8/5">8/5 – 560 Spiele</option>
+                  </optgroup>
+                  <optgroup label="9–11 aus 50">
+                    <option value="9/2">9/2 – 126 Spiele</option>
+                    <option value="9/3">9/3 – 378 Spiele</option>
+                    <option value="10/2">10/2 – 252 Spiele</option>
+                    <option value="11/2">11/2 – 462 Spiele</option>
+                  </optgroup>
+                </select>
+                <div class="note">
+                  Beispiel: 7/3 bedeutet 7 Hauptzahlen + 3 Eurozahlen in einem System.  
+                  Im Hintergrund werden alle Vollsystem-Kombinationen gespielt.
+                </div>
+              </div>
+              <div class="group">
+                <label>System-Infos (offizielle Quotenbasis)</label>
+                <div id="systemMetaInfo" class="note">Bitte ein System wählen.</div>
+                <div id="systemBaseInfo" class="note" style="margin-top:4px;">Noch keine Systemzahlen erzeugt.</div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="group">
+                <label>Anzahl Systemscheine (1–50)</label>
+                <input type="number" id="systemCount" value="3" min="1" max="50">
+              </div>
+              <div class="group">
+                <label>Statistik-Zeitraum für Gewichtung</label>
+                <select id="systemRange">
+                  <option value="12">letzte 12 Ziehungen</option>
+                  <option value="24">letzte 24 Ziehungen</option>
+                  <option value="36" selected>letzte 36 Ziehungen</option>
+                  <option value="48">letzte 48 Ziehungen</option>
+                  <option value="60">letzte 60 Ziehungen</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="group">
+                <label>Optionen (Systemmodus)</label>
+                <label class="switch">
+                  <input id="sysUseStats" type="checkbox" checked>
+                  <span class="sw-pill"><span class="sw-thumb"></span></span>
+                  <span>Hot/Cold &amp; Bereiche nutzen</span>
+                </label>
+                <label class="switch">
+                  <input id="sysMaxDiff" type="checkbox" checked>
+                  <span class="sw-pill"><span class="sw-thumb"></span></span>
+                  <span>Abstand zwischen Systemen maximieren</span>
+                </label>
+              </div>
+            </div>
+            <div class="row">
+              <button class="btn btn-sm" id="btnSystemGen">Systemscheine automatisch generieren</button>
+              <div id="systemStatus" class="status"></div>
+            </div>
           </div>
+
+          <!-- GEMEINSAME VARIANTEN-AUSGABE -->
           <div class="tbl-wrap" id="genTableWrap" style="display:none">
             <table>
               <thead><tr><th>#</th><th>Hauptzahlen</th><th>Eurozahlen</th></tr></thead>
@@ -399,8 +515,8 @@
             <button class="btn btn-sm btn-outline" id="btnExportCsv">Als CSV exportieren</button>
           </div>
           <div class="note">
-            Im <strong>Systemschein-Modus</strong> erzeugt der System-Button unten komplette Systeme
-            (z.B. 7/2) – du siehst dann 7 Hauptzahlen + 2 Eurozahlen pro Zeile.
+            Die Tabelle unten zeigt immer das aktuelle Ergebnis – entweder Standardtipps (5/2) oder komplette
+            Systemscheine (z.B. 7/3 mit 7 Zahlen + 3 Eurozahlen).
           </div>
         </div>
 
@@ -409,7 +525,7 @@
           <div class="card-header">
             <div>
               <h2>Varianten-Analyse</h2>
-              <div class="sub">Prüft Varianten (Standard + System) gegen alle geladenen Ziehungen.</div>
+              <div class="sub">Prüft Standardtipps oder Systeme gegen alle geladenen Ziehungen.</div>
             </div>
             <span class="chip">Historie</span>
           </div>
@@ -419,7 +535,7 @@
               <label class="switch">
                 <input type="radio" name="vsource" value="gen" checked>
                 <span class="sw-pill"><span class="sw-thumb"></span></span>
-                <span>aktuell generierte (inkl. System)</span>
+                <span>aktuell generierte (Standard + System)</span>
               </label>
               <label class="switch">
                 <input type="radio" name="vsource" value="manual">
@@ -438,10 +554,10 @@
           </div>
           <div class="row" id="manualRow" style="display:none">
             <div class="group">
-              <label>Manuelle Varianten (eine pro Zeile)</label>
+              <label>Manuelle Varianten/Systeme (eine pro Zeile)</label>
               <textarea id="manualInput" placeholder="Beispiel:
-1 5 12 28 44 | 3 7
-2;11;19;25;36;4;8"></textarea>
+6 9 19 21 27 29 31 | 1 4 7
+1 5 12 28 44 | 3 7"></textarea>
             </div>
           </div>
           <div class="row">
@@ -452,58 +568,18 @@
             <table>
               <thead>
                 <tr>
-                  <th>#</th><th>Variante</th><th>3/5</th><th>4/5</th><th>5/5</th><th>mit Euro (z.B. 5+2)</th>
+                  <th>#</th><th>Variante / System</th><th>3/5</th><th>4/5</th><th>5/5</th><th>mit Euro (z.B. 5+2)</th>
                 </tr>
               </thead>
               <tbody id="analysisBody"></tbody>
             </table>
           </div>
           <div class="note">
-            Bei Systemen wird gezählt, wie viele Gewinnzahlen in den Systemzahlen enthalten waren
-            (z.B. 3 von 5 gezogenen Hauptzahlen im 7er-System).
+            Bei Systemen wird geprüft, wie viele der 5 Gewinnzahlen im System enthalten waren
+            (z.B. 3 von 5 im 7er-System = Trefferklasse 3/5 im System).
           </div>
         </div>
       </div>
-
-      <!-- SYSTEMSCHEIN-BEREICH -->
-      <div class="card" id="systemCard" style="margin-top:14px;display:none">
-        <div class="card-header">
-          <div>
-            <h2>Systemschein</h2>
-            <div class="sub">Es werden komplette Systeme (z.B. 7/2) automatisch aus Archiv &amp; Statistik gebaut.</div>
-          </div>
-          <span class="chip">System</span>
-        </div>
-        <div class="row">
-          <div class="group">
-            <label>Systemtyp</label>
-            <select id="systemSpec">
-              <option value="6-2">6/2</option>
-              <option value="7-2" selected>7/2</option>
-              <option value="8-2">8/2</option>
-              <option value="9-2">9/2</option>
-              <option value="10-2">10/2</option>
-            </select>
-            <div class="note">
-              Beispiel: 7/2 = 7 Hauptzahlen + 2 Eurozahlen pro System.  
-              Es werden so viele Systeme erzeugt, wie bei „Anzahl Varianten“ eingestellt ist.
-            </div>
-          </div>
-          <div class="group">
-            <label>System-Übersicht</label>
-            <div id="systemBaseInfo" class="note">Noch keine Systeme erzeugt.</div>
-          </div>
-        </div>
-        <div class="row">
-          <button class="btn btn-sm" id="btnSystemGen">System-Varianten automatisch generieren</button>
-          <div id="systemStatus" class="status"></div>
-        </div>
-        <div class="note">
-          Die Zahlen werden aus den letzten Ziehungen, Hot/Cold-Verteilung und deinen Schalter-Einstellungen
-          abgeleitet. Du musst nichts eintippen – jede Zeile in der Liste ist ein komplettes System.
-        </div>
-      </div>
-
     </section>
   </main>
 
@@ -520,12 +596,57 @@
   const ARCHIVE_URL = "https://www.lotto-bayern.de/static/gamebroker_2/de/download_files/archiv_eurojackpot.zip";
   const STORAGE_KEY = "ej_archive_v1";
 
+  // Offizielle System-Infos (aus Systembroschüre, Einsatz = Spiele * 2 €)
+  const SYSTEM_DEFS = {
+    "5/2":  {main:5,euro:2,games:1,   stake:2},
+    "5/3":  {main:5,euro:3,games:3,   stake:6},
+    "5/4":  {main:5,euro:4,games:6,   stake:12},
+    "5/5":  {main:5,euro:5,games:10,  stake:20},
+    "5/6":  {main:5,euro:6,games:15,  stake:30},
+    "5/7":  {main:5,euro:7,games:21,  stake:42},
+    "5/8":  {main:5,euro:8,games:28,  stake:56},
+    "5/9":  {main:5,euro:9,games:36,  stake:72},
+    "5/10": {main:5,euro:10,games:45, stake:90},
+    "5/11": {main:5,euro:11,games:55, stake:110},
+    "5/12": {main:5,euro:12,games:66, stake:132},
+
+    "6/2":  {main:6,euro:2,games:6,   stake:12},
+    "6/3":  {main:6,euro:3,games:18,  stake:36},
+    "6/4":  {main:6,euro:4,games:36,  stake:72},
+    "6/5":  {main:6,euro:5,games:60,  stake:120},
+    "6/6":  {main:6,euro:6,games:90,  stake:180},
+    "6/7":  {main:6,euro:7,games:126, stake:252},
+    "6/8":  {main:6,euro:8,games:168, stake:336},
+    "6/9":  {main:6,euro:9,games:216, stake:432},
+    "6/10": {main:6,euro:10,games:270,stake:540},
+    "6/11": {main:6,euro:11,games:330,stake:660},
+    "6/12": {main:6,euro:12,games:396,stake:792},
+
+    "7/2":  {main:7,euro:2,games:21,  stake:42},
+    "7/3":  {main:7,euro:3,games:63,  stake:126},
+    "7/4":  {main:7,euro:4,games:126, stake:252},
+    "7/5":  {main:7,euro:5,games:210, stake:420},
+    "7/6":  {main:7,euro:6,games:315, stake:630},
+    "7/7":  {main:7,euro:7,games:441, stake:882},
+    "7/8":  {main:7,euro:8,games:588, stake:1176},
+
+    "8/2":  {main:8,euro:2,games:56,  stake:112},
+    "8/3":  {main:8,euro:3,games:168, stake:336},
+    "8/4":  {main:8,euro:4,games:336, stake:672},
+    "8/5":  {main:8,euro:5,games:560, stake:1120},
+
+    "9/2":  {main:9,euro:2,games:126, stake:252},
+    "9/3":  {main:9,euro:3,games:378, stake:756},
+
+    "10/2": {main:10,euro:2,games:252, stake:504},
+    "11/2": {main:11,euro:2,games:462, stake:924}
+  };
+
   const app = {
-    draws: [],
+    draws: [],   // {date, main[5], euro[2]}
     generated: [],
     stats: null
   };
-
   const el = id => document.getElementById(id);
 
   function setStatus(targetId,msg,type,loading){
@@ -536,7 +657,7 @@
     n.innerHTML = (loading?'<span class="loader"></span>':'')+`<span class="${cls}">${icon} ${msg}</span>`;
   }
 
-  /* ===== localStorage ===== */
+  /* ========= localStorage ========= */
 
   function saveArchive(){
     try{
@@ -565,7 +686,7 @@
     }
   }
 
-  /* ===== JSZip & Download ===== */
+  /* ========= JSZip & Download ========= */
 
   async function ensureJSZip(){
     if(window.JSZip) return true;
@@ -623,7 +744,7 @@
     throw lastErr||new Error("Download über alle Proxys fehlgeschlagen.");
   }
 
-  /* ===== Parsing Archiv ===== */
+  /* ========= Parsing Archiv ========= */
 
   function parseArchiveText(txt){
     txt=txt.replace(/^\uFEFF/,"");
@@ -710,7 +831,7 @@
     });
   }
 
-  /* ===== Statistik ===== */
+  /* ========= Statistik ========= */
 
   function computeStats(){
     if(!app.draws.length){
@@ -768,7 +889,29 @@
     setStatus("statsStatus","Statistik für die letzten "+subset.length+" Ziehungen berechnet.","ok");
   }
 
-  /* ===== Helfer ===== */
+  function buildStatsForRange(range){
+    if(!app.draws.length) return null;
+    const subset=app.draws.slice(-Math.min(range,app.draws.length));
+    const mainFreq=Array(51).fill(0);
+    const ranges=[0,0,0,0,0];
+    subset.forEach(d=>{
+      d.main.forEach(m=>{
+        mainFreq[m]++;
+        const idx=Math.floor((m-1)/10);
+        ranges[idx]++;
+      });
+    });
+    const totalMain=subset.length*5;
+    const arr=[];
+    for(let i=1;i<=50;i++) arr.push({num:i,count:mainFreq[i]});
+    arr.sort((a,b)=>a.count-b.count);
+    const coldCut=Math.ceil(50*0.2),hotCut=Math.floor(50*0.8);
+    const cold=new Set(arr.slice(0,coldCut).map(x=>x.num));
+    const hot=new Set(arr.slice(hotCut).map(x=>x.num));
+    return {mainFreq,ranges,totalMain,subset,hot,cold};
+  }
+
+  /* ========= Helfer ========= */
 
   function weightedPick(weights){
     let sum=0;
@@ -807,25 +950,7 @@
   function ensureStatsForGen(){
     if(app.stats) return app.stats;
     if(!app.draws.length) return null;
-    const subset=app.draws.slice(-Math.min(60,app.draws.length));
-    const mainFreq=Array(51).fill(0);
-    const ranges=[0,0,0,0,0];
-    subset.forEach(d=>{
-      d.main.forEach(m=>{
-        mainFreq[m]++;
-        const idx=Math.floor((m-1)/10);
-        ranges[idx]++;
-      });
-    });
-    const totalMain=subset.length*5;
-    const arr=[];
-    for(let i=1;i<=50;i++) arr.push({num:i,count:mainFreq[i]});
-    arr.sort((a,b)=>a.count-b.count);
-    const coldCut=Math.ceil(50*0.2),hotCut=Math.floor(50*0.8);
-    const cold=new Set(arr.slice(0,coldCut).map(x=>x.num));
-    const hot=new Set(arr.slice(hotCut).map(x=>x.num));
-    app.stats={mainFreq,ranges,totalMain,subset,hot,cold};
-    return app.stats;
+    return buildStatsForRange(60);
   }
 
   function buildMainEuroWeightsFromStats(stats){
@@ -851,7 +976,7 @@
     return {mainW,euroW};
   }
 
-  /* ===== Standard-Generator ===== */
+  /* ========= Standard-Generator ========= */
 
   function generateSingle(mainW,euroW,includeEuro,forceUniform){
     const mW=mainW.slice(),eW=euroW.slice();
@@ -891,11 +1016,6 @@
   }
 
   function generateVariants(){
-    const systemMode=el("genSystemMode").checked;
-    if(systemMode){
-      setStatus("genStatus","Systemschein-Modus ist aktiv – bitte unten den System-Button verwenden.","warn");
-      return;
-    }
     const count=Math.max(1,Math.min(500,Number(el("numVariants").value)||1));
     el("numVariants").value=count;
     if(!app.draws.length){
@@ -907,7 +1027,7 @@
     const noDup=el("genNoDup").checked;
     const maxDiff=el("genMaxDiff").checked;
 
-    setStatus("genStatus","Varianten werden generiert…","info",true);
+    setStatus("genStatus","Standard-Varianten werden generiert…","info",true);
 
     const stats=useStats?ensureStatsForGen():null;
     const {mainW,euroW}=buildMainEuroWeightsFromStats(stats||{ranges:[1,1,1,1,1],subset:[],hot:new Set(),cold:new Set()});
@@ -928,7 +1048,7 @@
     }
     app.generated=variants;
     renderGenerated();
-    setStatus("genStatus","Es wurden "+variants.length+" Varianten erzeugt.","ok");
+    setStatus("genStatus","Es wurden "+variants.length+" Standard-Varianten erzeugt.","ok");
   }
 
   function triggerDownload(blob,name){
@@ -942,6 +1062,14 @@
 
   function exportVariants(type){
     if(!app.generated.length) return;
+
+    // Dynamischer Header (passt auch für Systeme mit mehr als 5 Zahlen)
+    let maxMain=0,maxEuro=0;
+    app.generated.forEach(v=>{
+      if(v.main.length>maxMain)maxMain=v.main.length;
+      if(v.euro.length>maxEuro)maxEuro=v.euro.length;
+    });
+
     if(type==="txt"){
       const lines=app.generated.map(v=>{
         const main=v.main.join(" ");
@@ -949,34 +1077,24 @@
         return main+euro;
       });
       const blob=new Blob([lines.join("\n")],{type:"text/plain;charset=utf-8"});
-      triggerDownload(blob,"eurojackpot_varianten.txt");
+      triggerDownload(blob,"eurojackpot_varianten_oder_systeme.txt");
     }else{
-      const lines=["Z1;Z2;Z3;Z4;Z5;E1;E2"];
+      const header=[];
+      for(let i=1;i<=maxMain;i++) header.push("Z"+i);
+      for(let i=1;i<=maxEuro;i++) header.push("E"+i);
+      const lines=[header.join(";")];
       app.generated.forEach(v=>{
-        const arr=[...v.main];
-        if(v.euro&&v.euro.length) arr.push(...v.euro);else arr.push("","");
-        lines.push(arr.join(";"));
+        const row=[];
+        for(let i=0;i<maxMain;i++) row.push(v.main[i]||"");
+        for(let i=0;i<maxEuro;i++) row.push(v.euro[i]||"");
+        lines.push(row.join(";"));
       });
       const blob=new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8"});
-      triggerDownload(blob,"eurojackpot_varianten.csv");
+      triggerDownload(blob,"eurojackpot_varianten_oder_systeme.csv");
     }
   }
 
-  /* ===== Systemschein ===== */
-
-  function combinations(arr,k){
-    const res=[];
-    function backtrack(start,combo){
-      if(combo.length===k){res.push(combo.slice());return;}
-      for(let i=start;i<arr.length;i++){
-        combo.push(arr[i]);
-        backtrack(i+1,combo);
-        combo.pop();
-      }
-    }
-    backtrack(0,[]);
-    return res;
-  }
+  /* ========= Systemmodus ========= */
 
   function pickDistinctWeightedDynamic(baseW,usedCounts,maxN,count){
     const w=Array(maxN+1).fill(0);
@@ -1004,41 +1122,58 @@
     return res;
   }
 
+  function updateSystemMetaInfo(){
+    const spec=el("systemSpec").value;
+    const def=SYSTEM_DEFS[spec];
+    const meta=el("systemMetaInfo");
+    if(!def){
+      meta.textContent="Unbekanntes System – bitte ein offizielles System auswählen.";
+      return;
+    }
+    meta.textContent =
+      `System ${spec}: ${def.main} Hauptzahlen, ${def.euro} Eurozahlen, `+
+      `${def.games} Vollsystem-Spiele, Einsatz pro System ca. ${def.stake.toFixed(2).replace(".",",")} € (bei 2,00 € je Tipp).`;
+  }
+
   function systemGenerate(){
     try{
       if(!app.draws.length){
-        setStatus("systemStatus","Für den Systemschein muss das Archiv geladen sein.","err");
+        setStatus("systemStatus","Für den Systemmodus muss das Archiv geladen sein.","err");
         return;
       }
-      const stats=ensureStatsForGen();
-      const {mainW,euroW}=buildMainEuroWeightsFromStats(stats||{ranges:[1,1,1,1,1],subset:[],hot:new Set(),cold:new Set()});
-      const useStats=el("genUseStats").checked;
-      const useMaxDiff=el("genMaxDiff").checked;
-
       const spec=el("systemSpec").value;
-      const [needMainStr,needEuroStr]=spec.split("-");
-      const needMain=Number(needMainStr);
-      const needEuro=Number(needEuroStr);
+      const def=SYSTEM_DEFS[spec];
+      if(!def) throw new Error("Unbekanntes System.");
 
-      const k=Math.max(1,Math.min(500,Number(el("numVariants").value)||1));
-      el("numVariants").value=k;
+      const needMain=def.main;
+      const needEuro=def.euro;
+
+      const k=Math.max(1,Math.min(50,Number(el("systemCount").value)||1));
+      el("systemCount").value=k;
+
+      const range=Number(el("systemRange").value)||36;
+      const useStats=el("sysUseStats").checked;
+      const useMaxDiff=el("sysMaxDiff").checked;
+
+      const stats=useStats?buildStatsForRange(range):null;
+      const {mainW,euroW}=buildMainEuroWeightsFromStats(stats||{ranges:[1,1,1,1,1],subset:[],hot:new Set(),cold:new Set()});
 
       const usedMainCounts=Array(51).fill(0);
       const usedEuroCounts=Array(13).fill(0);
-
       const systems=[];
+
       for(let i=0;i<k;i++){
         let tries=0,variant=null;
-        while(tries<50 && !variant){
+        while(tries<80 && !variant){
           tries++;
           const baseMain=pickDistinctWeightedDynamic(
-            useStats?mainW:Array(51).fill(1),
+            mainW,
             usedMainCounts,
             50,
             needMain
           );
           const baseEuro=pickDistinctWeightedDynamic(
-            useStats?euroW:Array(13).fill(1),
+            euroW,
             usedEuroCounts,
             12,
             needEuro
@@ -1061,7 +1196,7 @@
         systems.push(variant);
       }
 
-      if(!systems.length) throw new Error("Es konnten keine Systeme erzeugt werden.");
+      if(!systems.length) throw new Error("Es konnten keine Systeme erzeugt werden (zu strenge Einstellungen?).");
 
       app.generated=systems;
       renderGenerated();
@@ -1071,23 +1206,27 @@
       el("manualRow").style.display="none";
 
       el("systemBaseInfo").textContent=
-        "Systemtyp "+needMain+"/"+needEuro+" – erzeugt wurden "+systems.length+" Systeme (siehe Liste).";
+        "Erster Systemschein: "+systems[0].main.join(" ")+" | "+systems[0].euro.join(" ");
 
-      setStatus("systemStatus","Systeme erzeugt: "+systems.length+" Stück.","ok");
-      setStatus("genStatus","Systemschein-Modus: "+systems.length+" System-Varianten aktiv.","ok");
+      const defTotalStake = def.stake * k;
+      const defTotalGames = def.games * k;
+
+      setStatus("systemStatus",
+        `Systemmodus: ${systems.length}× ${spec}. Vollsystem-Spiele gesamt: ${defTotalGames} · theoretischer Einsatz: ca. ${defTotalStake.toFixed(2).replace(".",",")} € pro Ziehung.`,
+        "ok"
+      );
+      setStatus("genStatus","Systemmodus aktiv – Tabelle zeigt die aktuellen Systemscheine.","ok");
     }catch(e){
-      setStatus("systemStatus","Fehler im Systemschein: "+e.message,"err");
+      setStatus("systemStatus","Fehler im Systemmodus: "+e.message,"err");
     }
   }
 
-  /* ===== Analyse ===== */
+  /* ========= Analyse ========= */
 
   function parseManualVariants(text){
     const lines=text.split(/\r?\n/).filter(l=>l.trim().length>0);
     const res=[];
     for(const line of lines){
-      const nums=(line.match(/\d+/g)||[]).map(Number);
-      if(nums.length<5) continue;
       const parts=line.split("|");
       const mainPart=(parts[0]||"").match(/\d+/g)||[];
       const euroPart=(parts[1]||"").match(/\d+/g)||[];
@@ -1109,7 +1248,7 @@
     let variants=[];
     if(src==="gen"){
       if(!app.generated.length){
-        setStatus("analysisStatus","Keine generierten Varianten vorhanden.","err");
+        setStatus("analysisStatus","Keine generierten Varianten/Systeme vorhanden.","err");
         el("analysisWrap").style.display="none";
         return;
       }
@@ -1117,13 +1256,13 @@
     }else{
       const text=el("manualInput").value.trim();
       if(!text){
-        setStatus("analysisStatus","Bitte Varianten in das Textfeld eintragen.","err");
+        setStatus("analysisStatus","Bitte Varianten/Systeme in das Textfeld eintragen.","err");
         el("analysisWrap").style.display="none";
         return;
       }
       variants=parseManualVariants(text);
       if(!variants.length){
-        setStatus("analysisStatus","Keine gültigen Varianten in der Eingabe gefunden.","err");
+        setStatus("analysisStatus","Keine gültigen Varianten/Systeme in der Eingabe gefunden.","err");
         el("analysisWrap").style.display="none";
         return;
       }
@@ -1139,7 +1278,7 @@
       let h3=0,h4=0,h5=0;
       const euroMap={};
       app.draws.forEach(d=>{
-        const mh=countIntersection(v.main,d.main); // wie viele der 5 Gewinnzahlen im System
+        const mh=countIntersection(v.main,d.main);
         if(mh<3) return;
         if(mh===3) h3++; else if(mh===4) h4++; else if(mh===5) h5++;
         if(includeEuro && v.euro && v.euro.length){
@@ -1166,10 +1305,10 @@
     });
 
     el("analysisWrap").style.display="block";
-    setStatus("analysisStatus","Analyse für "+variants.length+" Varianten abgeschlossen.","ok");
+    setStatus("analysisStatus","Analyse für "+variants.length+" Varianten/Systeme abgeschlossen.","ok");
   }
 
-  /* ===== Init ===== */
+  /* ========= Tabs & Init ========= */
 
   function initDate(){
     const d=new Date();
@@ -1179,10 +1318,34 @@
     el("drawDate").value=`${yyyy}-${mm}-${dd}`;
   }
 
+  function initTabs(){
+    const tabStd=el("tabStd");
+    const tabSys=el("tabSys");
+    const stdPanel=el("stdPanel");
+    const sysPanel=el("sysPanel");
+
+    tabStd.addEventListener("click",()=>{
+      tabStd.classList.add("active");
+      tabSys.classList.remove("active");
+      stdPanel.style.display="block";
+      sysPanel.style.display="none";
+      setStatus("genStatus","Standardmodus aktiv.","info");
+    });
+    tabSys.addEventListener("click",()=>{
+      tabSys.classList.add("active");
+      tabStd.classList.remove("active");
+      stdPanel.style.display="none";
+      sysPanel.style.display="block";
+      setStatus("genStatus","Systemmodus aktiv. Mit dem System-Button unten Systemscheine erzeugen.","info");
+    });
+  }
+
   function init(){
     initDate();
     setupFileInput();
     restoreArchive();
+    initTabs();
+    updateSystemMetaInfo();
 
     el("btnLoadRemote").addEventListener("click",loadArchiveRemote);
     el("btnStats").addEventListener("click",computeStats);
@@ -1191,16 +1354,7 @@
     el("btnExportCsv").addEventListener("click",()=>exportVariants("csv"));
     el("btnAnalyze").addEventListener("click",analyze);
     el("btnSystemGen").addEventListener("click",systemGenerate);
-
-    el("genSystemMode").addEventListener("change",()=>{
-      const on=el("genSystemMode").checked;
-      el("systemCard").style.display=on?"block":"none";
-      if(on){
-        setStatus("genStatus","Systemschein-Modus ist aktiv. Unten auf „System-Varianten automatisch generieren“ klicken.","info");
-      }else{
-        setStatus("systemStatus","Systemschein-Modus deaktiviert.","info");
-      }
-    });
+    el("systemSpec").addEventListener("change",updateSystemMetaInfo);
 
     document.getElementsByName("vsource").forEach(r=>{
       r.addEventListener("change",()=>{
