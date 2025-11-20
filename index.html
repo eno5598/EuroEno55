@@ -399,8 +399,8 @@
             <button class="btn btn-sm btn-outline" id="btnExportCsv">Als CSV exportieren</button>
           </div>
           <div class="note">
-            Im <strong>Systemschein-Modus</strong> werden Varianten vollständig automatisch aus Archiv &amp; Statistik erzeugt.
-            Du musst keine Zahlen eingeben.
+            Im <strong>Systemschein-Modus</strong> erzeugt der System-Button unten komplette Systeme
+            (z.B. 7/2) – du siehst dann 7 Hauptzahlen + 2 Eurozahlen pro Zeile.
           </div>
         </div>
 
@@ -409,7 +409,7 @@
           <div class="card-header">
             <div>
               <h2>Varianten-Analyse</h2>
-              <div class="sub">Prüft Varianten gegen alle geladenen Ziehungen.</div>
+              <div class="sub">Prüft Varianten (Standard + System) gegen alle geladenen Ziehungen.</div>
             </div>
             <span class="chip">Historie</span>
           </div>
@@ -458,7 +458,10 @@
               <tbody id="analysisBody"></tbody>
             </table>
           </div>
-          <div class="note">Gezählt werden alle Ziehungen, in denen eine Variante mindestens drei Hauptzahlen getroffen hat.</div>
+          <div class="note">
+            Bei Systemen wird gezählt, wie viele Gewinnzahlen in den Systemzahlen enthalten waren
+            (z.B. 3 von 5 gezogenen Hauptzahlen im 7er-System).
+          </div>
         </div>
       </div>
 
@@ -467,7 +470,7 @@
         <div class="card-header">
           <div>
             <h2>Systemschein</h2>
-            <div class="sub">System-Spiel (z.B. 7/2) – Zahlen werden automatisch aus Archiv &amp; Statistik gewählt.</div>
+            <div class="sub">Es werden komplette Systeme (z.B. 7/2) automatisch aus Archiv &amp; Statistik gebaut.</div>
           </div>
           <span class="chip">System</span>
         </div>
@@ -482,13 +485,13 @@
               <option value="10-2">10/2</option>
             </select>
             <div class="note">
-              Hauptzahlen/Eurozahlen. Beispiel: 7/2 bedeutet 7 Hauptzahlen &amp; 2 Eurozahlen als Systembasis,
-              daraus werden automatisch sinnvolle 5er-Tipps erzeugt.
+              Beispiel: 7/2 = 7 Hauptzahlen + 2 Eurozahlen pro System.  
+              Es werden so viele Systeme erzeugt, wie bei „Anzahl Varianten“ eingestellt ist.
             </div>
           </div>
           <div class="group">
-            <label>System-Basis (automatisch gewählt)</label>
-            <div id="systemBaseInfo" class="note">Noch kein System erzeugt.</div>
+            <label>System-Übersicht</label>
+            <div id="systemBaseInfo" class="note">Noch keine Systeme erzeugt.</div>
           </div>
         </div>
         <div class="row">
@@ -496,9 +499,8 @@
           <div id="systemStatus" class="status"></div>
         </div>
         <div class="note">
-          Die Systemzahlen und Varianten werden aus den letzten Ziehungen,
-          Hot/Cold-Verteilung und den Schaltern im Generator abgeleitet.
-          Du musst keine eigenen Zahlen eingeben.
+          Die Zahlen werden aus den letzten Ziehungen, Hot/Cold-Verteilung und deinen Schalter-Einstellungen
+          abgeleitet. Du musst nichts eintippen – jede Zeile in der Liste ist ein komplettes System.
         </div>
       </div>
 
@@ -519,7 +521,7 @@
   const STORAGE_KEY = "ej_archive_v1";
 
   const app = {
-    draws: [],   // {date:"YYYY-MM-DD"|null, main:[5], euro:[2]}
+    draws: [],
     generated: [],
     stats: null
   };
@@ -534,18 +536,14 @@
     n.innerHTML = (loading?'<span class="loader"></span>':'')+`<span class="${cls}">${icon} ${msg}</span>`;
   }
 
-  /* ===== localStorage ==================================================== */
+  /* ===== localStorage ===== */
 
   function saveArchive(){
     try{
       if(!app.draws.length) return;
-      const data = JSON.stringify(app.draws);
-      window.localStorage.setItem(STORAGE_KEY,data);
-    }catch(e){
-      console.warn("Konnte Archiv nicht speichern:",e);
-    }
+      window.localStorage.setItem(STORAGE_KEY,JSON.stringify(app.draws));
+    }catch(e){console.warn("Archiv speichern fehlgeschlagen:",e);}
   }
-
   function restoreArchive(){
     try{
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -553,37 +551,35 @@
       const data = JSON.parse(raw);
       if(!Array.isArray(data) || !data.length) return false;
       app.draws = data.map(d=>({
-        date: d.date || null,
-        main: (d.main||[]).slice().map(Number),
-        euro: (d.euro||[]).slice().map(Number)
+        date:d.date||null,
+        main:(d.main||[]).map(Number),
+        euro:(d.euro||[]).map(Number)
       }));
-      app.stats = null;
+      app.stats=null;
       setStatus("archiveStatus","Archiv aus vorheriger Sitzung geladen: "+app.draws.length+" Ziehungen.","ok");
-      setStatus("statsStatus","Archiv wiederhergestellt. Zeitraum wählen & „Statistik berechnen“ klicken.","ok");
-      console.log("[Archiv] restored", app.draws.length);
+      setStatus("statsStatus","Archiv wiederhergestellt. Zeitraum wählen & „Statistik berechnen“.","ok");
       return true;
     }catch(e){
-      console.warn("Konnte Archiv aus localStorage nicht laden:",e);
+      console.warn("Archiv aus localStorage fehlgeschlagen:",e);
       return false;
     }
   }
 
-  /* ===== JSZip & Proxy-Download ========================================= */
+  /* ===== JSZip & Download ===== */
 
   async function ensureJSZip(){
     if(window.JSZip) return true;
-    const cdns = [
+    const cdns=[
       "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",
       "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
       "https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"
     ];
     for(const src of cdns){
       try{
-        await new Promise((resolve,reject)=>{
+        await new Promise((res,rej)=>{
           const s=document.createElement("script");
           s.src=src; s.async=true;
-          s.onload=()=>resolve();
-          s.onerror=()=>reject();
+          s.onload=res; s.onerror=rej;
           document.head.appendChild(s);
         });
         if(window.JSZip) return true;
@@ -593,147 +589,128 @@
   }
 
   async function fetchWithProxies(url){
-    const trials = [
+    const trials=[
       url,
       "https://cors.isomorphic-git.org/"+url,
       "https://api.allorigins.win/raw?url="+encodeURIComponent(url),
       "https://thingproxy.freeboard.io/fetch/"+url,
       "https://corsproxy.io/?"+encodeURIComponent(url)
     ];
-    let lastErr = null;
+    let lastErr=null;
     for(const u of trials){
       try{
-        console.log("[Archiv] Versuche URL:", u);
         const res = await fetch(u);
         if(!res.ok) throw new Error("HTTP "+res.status);
-        const ct = (res.headers.get("content-type") || "").toLowerCase();
+        const ct=(res.headers.get("content-type")||"").toLowerCase();
         if(ct.includes("zip") || u.toLowerCase().endsWith(".zip")){
-          const ok = await ensureJSZip();
+          const ok=await ensureJSZip();
           if(!ok) throw new Error("JSZip konnte nicht geladen werden.");
-          const blob = await res.blob();
-          const zip = await JSZip.loadAsync(blob);
-          const entries = Object.values(zip.files);
-          let entry = entries.find(f=>/\.txt$/i.test(f.name)) ||
-                      entries.find(f=>/\.csv$/i.test(f.name)) ||
-                      entries[0];
+          const blob=await res.blob();
+          const zip=await JSZip.loadAsync(blob);
+          const entries=Object.values(zip.files);
+          let entry=entries.find(f=>/\.txt$/i.test(f.name))||
+                    entries.find(f=>/\.csv$/i.test(f.name))||
+                    entries[0];
           if(!entry) throw new Error("Keine Datei im ZIP gefunden.");
-          console.log("[Archiv] Nutze Datei aus ZIP:", entry.name);
           return await entry.async("string");
         }else{
-          console.log("[Archiv] Kein ZIP, lese als Text.");
           return await res.text();
         }
       }catch(e){
-        console.warn("[Archiv] Fehler mit", u, e);
-        lastErr = e;
+        lastErr=e;
       }
     }
-    throw lastErr || new Error("Download über alle Proxys fehlgeschlagen.");
+    throw lastErr||new Error("Download über alle Proxys fehlgeschlagen.");
   }
 
-  /* ===== Parsing ========================================================= */
+  /* ===== Parsing Archiv ===== */
 
   function parseArchiveText(txt){
-    txt = txt.replace(/^\uFEFF/,"");
-    const lines = txt.replace(/\r\n?/g,"\n").split("\n").map(l=>l.trim()).filter(Boolean);
-    const draws = [];
-
+    txt=txt.replace(/^\uFEFF/,"");
+    const lines=txt.replace(/\r\n?/g,"\n").split("\n").map(l=>l.trim()).filter(Boolean);
+    const draws=[];
     for(const line of lines){
       if(/tag\s+monat\s+jahr/i.test(line)) continue;
       if(/ZahlA1/i.test(line)) continue;
-
-      const nums = (line.match(/\d+/g)||[]).map(Number);
-      if(nums.length < 7) continue;
-
-      const last7 = nums.slice(-7);
-      if(last7.length !== 7) continue;
-      const main = last7.slice(0,5);
-      const euro = last7.slice(5,7);
-
+      const nums=(line.match(/\d+/g)||[]).map(Number);
+      if(nums.length<7) continue;
+      const last7=nums.slice(-7);
+      if(last7.length!==7) continue;
+      const main=last7.slice(0,5);
+      const euro=last7.slice(5,7);
       if(!main.every(n=>n>=1 && n<=50)) continue;
       if(!euro.every(n=>n>=1 && n<=12)) continue;
-
       main.sort((a,b)=>a-b);
       euro.sort((a,b)=>a-b);
-
-      let date = null;
-      if(nums.length >= 3){
-        const d = nums[0], m = nums[1], y = nums[2];
-        if(y >= 2000 && y <= 2100 && m>=1 && m<=12 && d>=1 && d<=31){
-          const dt = new Date(y, m-1, d);
-          if(!isNaN(dt.getTime())){
-            date = dt.toISOString().slice(0,10);
-          }
+      let date=null;
+      if(nums.length>=3){
+        const d=nums[0],m=nums[1],y=nums[2];
+        if(y>=2000&&y<=2100&&m>=1&&m<=12&&d>=1&&d<=31){
+          const dt=new Date(y,m-1,d);
+          if(!isNaN(dt.getTime())) date=dt.toISOString().slice(0,10);
         }
       }
-
-      draws.push({date, main, euro});
+      draws.push({date,main,euro});
     }
-
     if(!draws.length) throw new Error("Keine gültigen Ziehungen im Archiv gefunden.");
-
     draws.sort((a,b)=>{
-      if(!a.date && !b.date) return 0;
+      if(!a.date&&!b.date) return 0;
       if(!a.date) return -1;
       if(!b.date) return 1;
       return a.date.localeCompare(b.date);
     });
-
-    app.draws = draws;
-    app.stats = null;
-    console.log("[Archiv] Parsed draws:", draws.length);
+    app.draws=draws;
+    app.stats=null;
     saveArchive();
   }
 
   async function loadArchiveRemote(){
     setStatus("archiveStatus","Lade Archiv (ZIP, mehrere Proxys)…","info",true);
     try{
-      const text = await fetchWithProxies(ARCHIVE_URL);
+      const text=await fetchWithProxies(ARCHIVE_URL);
       parseArchiveText(text);
       setStatus("archiveStatus","Archiv geladen: "+app.draws.length+" Ziehungen.","ok");
-      setStatus("statsStatus","Archiv geladen. Zeitraum wählen & „Statistik berechnen“ klicken.","ok");
+      setStatus("statsStatus","Archiv geladen. Zeitraum wählen & „Statistik berechnen“.","ok");
     }catch(e){
-      console.error(e);
       setStatus("archiveStatus","Archiv konnte nicht automatisch geladen werden: "+e.message,"err");
     }
   }
 
   function setupFileInput(){
-    const input = el("fileInput");
-    input.addEventListener("change", async ev=>{
-      const file = ev.target.files && ev.target.files[0];
+    const input=el("fileInput");
+    input.addEventListener("change",async ev=>{
+      const file=ev.target.files&&ev.target.files[0];
       if(!file) return;
-      const name = file.name.toLowerCase();
+      const name=file.name.toLowerCase();
       try{
-        if(name.endsWith(".txt") || name.endsWith(".csv")){
-          const text = await file.text();
+        if(name.endsWith(".txt")||name.endsWith(".csv")){
+          const text=await file.text();
           parseArchiveText(text);
         }else if(name.endsWith(".zip")){
           setStatus("archiveStatus","ZIP wird entpackt…","info",true);
-          const ok = await ensureJSZip();
-          if(!ok) throw new Error("JSZip-Bibliothek konnte nicht geladen werden.");
-          const buf = await file.arrayBuffer();
-          const zip = await JSZip.loadAsync(buf);
-          const entries = Object.values(zip.files);
-          let entry = entries.find(f=>/\.txt$/i.test(f.name)) ||
-                      entries.find(f=>/\.csv$/i.test(f.name)) ||
-                      entries[0];
+          const ok=await ensureJSZip();
+          if(!ok) throw new Error("JSZip konnte nicht geladen werden.");
+          const buf=await file.arrayBuffer();
+          const zip=await JSZip.loadAsync(buf);
+          const entries=Object.values(zip.files);
+          let entry=entries.find(f=>/\.txt$/i.test(f.name))||
+                    entries.find(f=>/\.csv$/i.test(f.name))||
+                    entries[0];
           if(!entry) throw new Error("Keine TXT/CSV in der ZIP gefunden.");
-          const text = await entry.async("string");
+          const text=await entry.async("string");
           parseArchiveText(text);
         }else{
           throw new Error("Dateityp nicht unterstützt.");
         }
         setStatus("archiveStatus","Archiv geladen: "+app.draws.length+" Ziehungen.","ok");
-        setStatus("statsStatus","Archiv geladen. Zeitraum wählen & „Statistik berechnen“ klicken.","ok");
+        setStatus("statsStatus","Archiv geladen. Zeitraum wählen & „Statistik berechnen“.","ok");
       }catch(e){
-        console.error(e);
         setStatus("archiveStatus","Fehler beim Lesen der Datei: "+e.message,"err");
       }
     });
   }
 
-  /* ===== Statistik ======================================================= */
+  /* ===== Statistik ===== */
 
   function computeStats(){
     if(!app.draws.length){
@@ -742,96 +719,9 @@
       el("rangeTableWrap").style.display="none";
       return;
     }
-    const n = Number(el("statsRange").value)||12;
-    const subset = app.draws.slice(-Math.min(n,app.draws.length));
-    const mainFreq = Array(51).fill(0);
-    const ranges = [0,0,0,0,0];
-    subset.forEach(d=>{
-      d.main.forEach(m=>{
-        mainFreq[m]++;
-        const idx = Math.floor((m-1)/10);
-        ranges[idx]++;
-      });
-    });
-    const totalMain = subset.length*5;
-    const arr = [];
-    for(let i=1;i<=50;i++) arr.push({num:i,count:mainFreq[i]});
-    arr.sort((a,b)=>a.count-b.count);
-    const coldCut = Math.ceil(50*0.2), hotCut = Math.floor(50*0.8);
-    const cold = new Set(arr.slice(0,coldCut).map(x=>x.num));
-    const hot  = new Set(arr.slice(hotCut).map(x=>x.num));
-
-    app.stats = {mainFreq,ranges,totalMain,subset,hot,cold};
-
-    const body = el("statsBody");
-    body.innerHTML="";
-    for(let i=1;i<=50;i++){
-      const c = mainFreq[i];
-      const pct = totalMain ? (c/totalMain*100) : 0;
-      let cls="",lbl="neutral";
-      if(hot.has(i)){cls="hot";lbl="hot";}
-      else if(cold.has(i)){cls="cold";lbl="cold";}
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${i}</td><td>${c}</td><td>${pct.toFixed(1)} %</td><td><span class="pill-mini ${cls}">${lbl}</span></td>`;
-      body.appendChild(tr);
-    }
-
-    const labels = ["1–10","11–20","21–30","31–40","41–50"];
-    const rangeBody = el("rangeBody");
-    rangeBody.innerHTML="";
-    const totalRange = ranges.reduce((a,b)=>a+b,0)||1;
-    ranges.forEach((c,idx)=>{
-      const pct = c/totalRange*100;
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${labels[idx]}</td><td>${c}</td><td>${pct.toFixed(1)} %</td>`;
-      rangeBody.appendChild(tr);
-    });
-
-    el("statsTableWrap").style.display="block";
-    el("rangeTableWrap").style.display="block";
-    setStatus("statsStatus","Statistik für die letzten "+subset.length+" Ziehungen berechnet.","ok");
-  }
-
-  /* ===== Generator (Standard) ============================================ */
-
-  function weightedPick(weights){
-    let sum = 0;
-    for(let i=1;i<weights.length;i++) sum += Math.max(0,weights[i]);
-    if(sum<=0) return null;
-    let r = Math.random()*sum;
-    for(let i=1;i<weights.length;i++){
-      r -= Math.max(0,weights[i]);
-      if(r<=0) return i;
-    }
-    return null;
-  }
-
-  function countIntersection(a,b){
-    const s = new Set(a); let c=0;
-    for(const x of b) if(s.has(x)) c++;
-    return c;
-  }
-
-  function variantEqual(a,b){
-    if(a.main.length!==b.main.length || a.euro.length!==b.euro.length) return false;
-    for(let i=0;i<a.main.length;i++) if(a.main[i]!==b.main[i]) return false;
-    for(let i=0;i<a.euro.length;i++) if(a.euro[i]!==b.euro[i]) return false;
-    return true;
-  }
-
-  function isDiverse(v,list){
-    for(const o of list){
-      const inter = countIntersection(v.main,o.main);
-      if(inter>=4) return false;
-    }
-    return true;
-  }
-
-  function ensureStatsForGen(){
-    if(app.stats) return app.stats;
-    if(!app.draws.length) return null;
-    const subset = app.draws.slice(-Math.min(60,app.draws.length));
-    const mainFreq = Array(51).fill(0);
+    const n=Number(el("statsRange").value)||12;
+    const subset=app.draws.slice(-Math.min(n,app.draws.length));
+    const mainFreq=Array(51).fill(0);
     const ranges=[0,0,0,0,0];
     subset.forEach(d=>{
       d.main.forEach(m=>{
@@ -844,7 +734,94 @@
     const arr=[];
     for(let i=1;i<=50;i++) arr.push({num:i,count:mainFreq[i]});
     arr.sort((a,b)=>a.count-b.count);
-    const coldCut=Math.ceil(50*0.2), hotCut=Math.floor(50*0.8);
+    const coldCut=Math.ceil(50*0.2),hotCut=Math.floor(50*0.8);
+    const cold=new Set(arr.slice(0,coldCut).map(x=>x.num));
+    const hot=new Set(arr.slice(hotCut).map(x=>x.num));
+    app.stats={mainFreq,ranges,totalMain,subset,hot,cold};
+
+    const body=el("statsBody");
+    body.innerHTML="";
+    for(let i=1;i<=50;i++){
+      const c=mainFreq[i];
+      const pct=totalMain?(c/totalMain*100):0;
+      let cls="",lbl="neutral";
+      if(hot.has(i)){cls="hot";lbl="hot";}
+      else if(cold.has(i)){cls="cold";lbl="cold";}
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td>${i}</td><td>${c}</td><td>${pct.toFixed(1)} %</td><td><span class="pill-mini ${cls}">${lbl}</span></td>`;
+      body.appendChild(tr);
+    }
+
+    const labels=["1–10","11–20","21–30","31–40","41–50"];
+    const rangeBody=el("rangeBody");
+    rangeBody.innerHTML="";
+    const totalRange=ranges.reduce((a,b)=>a+b,0)||1;
+    ranges.forEach((c,idx)=>{
+      const pct=c/totalRange*100;
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td>${labels[idx]}</td><td>${c}</td><td>${pct.toFixed(1)} %</td>`;
+      rangeBody.appendChild(tr);
+    });
+
+    el("statsTableWrap").style.display="block";
+    el("rangeTableWrap").style.display="block";
+    setStatus("statsStatus","Statistik für die letzten "+subset.length+" Ziehungen berechnet.","ok");
+  }
+
+  /* ===== Helfer ===== */
+
+  function weightedPick(weights){
+    let sum=0;
+    for(let i=1;i<weights.length;i++) sum+=Math.max(0,weights[i]);
+    if(sum<=0) return null;
+    let r=Math.random()*sum;
+    for(let i=1;i<weights.length;i++){
+      r-=Math.max(0,weights[i]);
+      if(r<=0) return i;
+    }
+    return null;
+  }
+
+  function countIntersection(a,b){
+    const s=new Set(a);
+    let c=0;
+    for(const x of b) if(s.has(x)) c++;
+    return c;
+  }
+
+  function variantEqual(a,b){
+    if(a.main.length!==b.main.length||a.euro.length!==b.euro.length) return false;
+    for(let i=0;i<a.main.length;i++) if(a.main[i]!==b.main[i]) return false;
+    for(let i=0;i<a.euro.length;i++) if(a.euro[i]!==b.euro[i]) return false;
+    return true;
+  }
+
+  function isDiverse(v,list){
+    for(const o of list){
+      const inter=countIntersection(v.main,o.main);
+      if(inter>=4) return false;
+    }
+    return true;
+  }
+
+  function ensureStatsForGen(){
+    if(app.stats) return app.stats;
+    if(!app.draws.length) return null;
+    const subset=app.draws.slice(-Math.min(60,app.draws.length));
+    const mainFreq=Array(51).fill(0);
+    const ranges=[0,0,0,0,0];
+    subset.forEach(d=>{
+      d.main.forEach(m=>{
+        mainFreq[m]++;
+        const idx=Math.floor((m-1)/10);
+        ranges[idx]++;
+      });
+    });
+    const totalMain=subset.length*5;
+    const arr=[];
+    for(let i=1;i<=50;i++) arr.push({num:i,count:mainFreq[i]});
+    arr.sort((a,b)=>a.count-b.count);
+    const coldCut=Math.ceil(50*0.2),hotCut=Math.floor(50*0.8);
     const cold=new Set(arr.slice(0,coldCut).map(x=>x.num));
     const hot=new Set(arr.slice(hotCut).map(x=>x.num));
     app.stats={mainFreq,ranges,totalMain,subset,hot,cold};
@@ -852,45 +829,46 @@
   }
 
   function buildMainEuroWeightsFromStats(stats){
-    const mainW = Array(51).fill(1);
-    const euroW = Array(13).fill(1);
+    const mainW=Array(51).fill(1);
+    const euroW=Array(13).fill(1);
     if(!stats) return {mainW,euroW};
-    const totalRange = stats.ranges.reduce((a,b)=>a+b,0)||1;
+    const totalRange=stats.ranges.reduce((a,b)=>a+b,0)||1;
     for(let n=1;n<=50;n++){
       if(stats.hot.has(n)) mainW[n]*=1.5;
       if(stats.cold.has(n)) mainW[n]*=0.7;
-      const idx = Math.floor((n-1)/10);
-      const share = stats.ranges[idx]/totalRange;
+      const idx=Math.floor((n-1)/10);
+      const share=stats.ranges[idx]/totalRange;
       mainW[n]*=0.5+share*1.5;
     }
-    // Euro-Gewichte aus Archiv
-    const euroFreq = Array(13).fill(0);
+    const euroFreq=Array(13).fill(0);
     stats.subset.forEach(d=>{
-      d.euro.forEach(e=>{ if(e>=1 && e<=12) euroFreq[e]++; });
+      d.euro.forEach(e=>{if(e>=1&&e<=12)euroFreq[e]++;});
     });
-    const totalEuro = euroFreq.reduce((a,b)=>a+b,0)||1;
+    const totalEuro=euroFreq.reduce((a,b)=>a+b,0)||1;
     for(let e=1;e<=12;e++){
-      euroW[e] = 0.5 + (euroFreq[e]/totalEuro)*1.5;
+      euroW[e]=0.5+(euroFreq[e]/totalEuro)*1.5;
     }
     return {mainW,euroW};
   }
 
+  /* ===== Standard-Generator ===== */
+
   function generateSingle(mainW,euroW,includeEuro,forceUniform){
-    const mW = mainW.slice(), eW = euroW.slice();
+    const mW=mainW.slice(),eW=euroW.slice();
     if(forceUniform){
       for(let i=1;i<mW.length;i++) mW[i]=1;
       for(let i=1;i<eW.length;i++) eW[i]=1;
     }
     const main=[];
     for(let k=0;k<5;k++){
-      const n = weightedPick(mW); if(!n) return null;
+      const n=weightedPick(mW); if(!n) return null;
       main.push(n); mW[n]=0;
     }
     main.sort((a,b)=>a-b);
     const euro=[];
     if(includeEuro){
       for(let k=0;k<2;k++){
-        const e = weightedPick(eW); if(!e) return null;
+        const e=weightedPick(eW); if(!e) return null;
         euro.push(e); eW[e]=0;
       }
       euro.sort((a,b)=>a-b);
@@ -899,66 +877,65 @@
   }
 
   function renderGenerated(){
-    const body = el("genBody");
+    const body=el("genBody");
     body.innerHTML="";
     app.generated.forEach((v,idx)=>{
-      const tr = document.createElement("tr");
-      const mainHtml = v.main.map(n=>`<span class="ball">${n}</span>`).join(" ");
-      const euroHtml = v.euro && v.euro.length ? v.euro.map(n=>`<span class="ball euro">${n}</span>`).join(" ") : "–";
-      tr.innerHTML = `<td>${idx+1}</td><td><div class="balls">${mainHtml}</div></td><td><div class="balls">${euroHtml}</div></td>`;
+      const tr=document.createElement("tr");
+      const mainHtml=v.main.map(n=>`<span class="ball">${n}</span>`).join(" ");
+      const euroHtml=v.euro&&v.euro.length?v.euro.map(n=>`<span class="ball euro">${n}</span>`).join(" "):"–";
+      tr.innerHTML=`<td>${idx+1}</td><td><div class="balls">${mainHtml}</div></td><td><div class="balls">${euroHtml}</div></td>`;
       body.appendChild(tr);
     });
-    el("genTableWrap").style.display = app.generated.length?"block":"none";
-    el("genExportRow").style.display = app.generated.length?"flex":"none";
+    el("genTableWrap").style.display=app.generated.length?"block":"none";
+    el("genExportRow").style.display=app.generated.length?"flex":"none";
   }
 
   function generateVariants(){
-    const systemMode = el("genSystemMode").checked;
+    const systemMode=el("genSystemMode").checked;
     if(systemMode){
-      setStatus("genStatus","Systemschein-Modus ist aktiv – bitte den System-Button unten verwenden.","warn");
+      setStatus("genStatus","Systemschein-Modus ist aktiv – bitte unten den System-Button verwenden.","warn");
       return;
     }
-
-    const count = Math.max(1,Math.min(500,Number(el("numVariants").value)||1));
-    el("numVariants").value = count;
+    const count=Math.max(1,Math.min(500,Number(el("numVariants").value)||1));
+    el("numVariants").value=count;
     if(!app.draws.length){
       setStatus("genStatus","Bitte zuerst das Archiv laden.","err");
       return;
     }
-    const includeEuro = el("genIncludeEuro").checked;
-    const useStats    = el("genUseStats").checked;
-    const noDup       = el("genNoDup").checked;
-    const maxDiff     = el("genMaxDiff").checked;
+    const includeEuro=el("genIncludeEuro").checked;
+    const useStats=el("genUseStats").checked;
+    const noDup=el("genNoDup").checked;
+    const maxDiff=el("genMaxDiff").checked;
 
     setStatus("genStatus","Varianten werden generiert…","info",true);
 
-    const stats = useStats ? ensureStatsForGen() : null;
-    const {mainW,euroW} = buildMainEuroWeightsFromStats(stats || {ranges:[1,1,1,1,1],subset:[],hot:new Set(),cold:new Set()});
+    const stats=useStats?ensureStatsForGen():null;
+    const {mainW,euroW}=buildMainEuroWeightsFromStats(stats||{ranges:[1,1,1,1,1],subset:[],hot:new Set(),cold:new Set()});
 
-    const variants = [];
-    const maxAttempts = 40;
+    const variants=[];
+    const maxAttempts=40;
     for(let i=0;i<count;i++){
-      let v=null, tries=0;
-      while(!v && tries<maxAttempts){
+      let v=null,tries=0;
+      while(!v&&tries<maxAttempts){
         tries++;
-        v = generateSingle(mainW,euroW,includeEuro,false);
+        v=generateSingle(mainW,euroW,includeEuro,false);
         if(!v) continue;
-        if(noDup && variants.some(o=>variantEqual(o,v))){v=null;continue;}
-        if(maxDiff && !isDiverse(v,variants)){v=null;continue;}
+        if(noDup&&variants.some(o=>variantEqual(o,v))){v=null;continue;}
+        if(maxDiff&&!isDiverse(v,variants)){v=null;continue;}
       }
-      if(!v) v = generateSingle(mainW,euroW,includeEuro,true);
+      if(!v) v=generateSingle(mainW,euroW,includeEuro,true);
       variants.push(v);
     }
-    app.generated = variants;
+    app.generated=variants;
     renderGenerated();
     setStatus("genStatus","Es wurden "+variants.length+" Varianten erzeugt.","ok");
   }
 
   function triggerDownload(blob,name){
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href=url; a.download=name;
-    document.body.appendChild(a); a.click();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=name;
+    document.body.appendChild(a);a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
@@ -966,26 +943,26 @@
   function exportVariants(type){
     if(!app.generated.length) return;
     if(type==="txt"){
-      const lines = app.generated.map(v=>{
-        const main = v.main.join(" ");
-        const euro = v.euro && v.euro.length ? " | "+v.euro.join(" ") : "";
+      const lines=app.generated.map(v=>{
+        const main=v.main.join(" ");
+        const euro=v.euro&&v.euro.length?" | "+v.euro.join(" "):"";
         return main+euro;
       });
-      const blob = new Blob([lines.join("\n")],{type:"text/plain;charset=utf-8"});
+      const blob=new Blob([lines.join("\n")],{type:"text/plain;charset=utf-8"});
       triggerDownload(blob,"eurojackpot_varianten.txt");
     }else{
-      const lines = ["Z1;Z2;Z3;Z4;Z5;E1;E2"];
+      const lines=["Z1;Z2;Z3;Z4;Z5;E1;E2"];
       app.generated.forEach(v=>{
         const arr=[...v.main];
-        if(v.euro && v.euro.length) arr.push(...v.euro); else arr.push("","");
+        if(v.euro&&v.euro.length) arr.push(...v.euro);else arr.push("","");
         lines.push(arr.join(";"));
       });
-      const blob = new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8"});
+      const blob=new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8"});
       triggerDownload(blob,"eurojackpot_varianten.csv");
     }
   }
 
-  /* ===== Systemschein ==================================================== */
+  /* ===== Systemschein ===== */
 
   function combinations(arr,k){
     const res=[];
@@ -1001,27 +978,30 @@
     return res;
   }
 
-  function pickDistinctWeighted(weights,count){
-    const used = new Set();
-    const picked = [];
-    for(let i=0;i<count;i++){
-      let n = weightedPick(weights);
-      let safecount = 0;
-      while(n && used.has(n) && safecount<100){
-        n = weightedPick(weights);
-        safecount++;
+  function pickDistinctWeightedDynamic(baseW,usedCounts,maxN,count){
+    const w=Array(maxN+1).fill(0);
+    for(let i=1;i<=maxN;i++){
+      w[i]=baseW[i]/(1+(usedCounts[i]||0));
+    }
+    const res=[];
+    const used=new Set();
+    for(let k=0;k<count;k++){
+      let n=weightedPick(w);
+      let tries=0;
+      while(n&&used.has(n)&&tries<50){
+        n=weightedPick(w);tries++;
       }
-      if(!n || used.has(n)){
-        for(let j=1;j<weights.length;j++){
-          if(!used.has(j)){ n=j; break; }
+      if(!n||used.has(n)){
+        for(let j=1;j<=maxN;j++){
+          if(!used.has(j)){n=j;break;}
         }
       }
       if(!n) break;
       used.add(n);
-      picked.push(n);
+      res.push(n);
     }
-    picked.sort((a,b)=>a-b);
-    return picked;
+    res.sort((a,b)=>a-b);
+    return res;
   }
 
   function systemGenerate(){
@@ -1030,114 +1010,90 @@
         setStatus("systemStatus","Für den Systemschein muss das Archiv geladen sein.","err");
         return;
       }
-      const stats = ensureStatsForGen();
-      const {mainW,euroW} = buildMainEuroWeightsFromStats(stats || {ranges:[1,1,1,1,1],subset:[],hot:new Set(),cold:new Set()});
-      const useStats = el("genUseStats").checked;
-      const useMaxDiff = el("genMaxDiff").checked;
+      const stats=ensureStatsForGen();
+      const {mainW,euroW}=buildMainEuroWeightsFromStats(stats||{ranges:[1,1,1,1,1],subset:[],hot:new Set(),cold:new Set()});
+      const useStats=el("genUseStats").checked;
+      const useMaxDiff=el("genMaxDiff").checked;
 
-      const spec = el("systemSpec").value;
-      const [needMainStr, needEuroStr] = spec.split("-");
-      const needMain = Number(needMainStr);
-      const needEuro = Number(needEuroStr);
+      const spec=el("systemSpec").value;
+      const [needMainStr,needEuroStr]=spec.split("-");
+      const needMain=Number(needMainStr);
+      const needEuro=Number(needEuroStr);
 
-      const k = Math.max(1,Math.min(50,Number(el("numVariants").value)||1));
-      el("numVariants").value = k;
+      const k=Math.max(1,Math.min(500,Number(el("numVariants").value)||1));
+      el("numVariants").value=k;
 
-      // System-Basis-Zahlen automatisch wählen
-      const baseMain = pickDistinctWeighted(useStats?mainW:Array(51).fill(1),needMain);
-      const baseEuro = pickDistinctWeighted(useStats?euroW:Array(13).fill(1),needEuro);
+      const usedMainCounts=Array(51).fill(0);
+      const usedEuroCounts=Array(13).fill(0);
 
-      if(baseMain.length!==needMain || baseEuro.length!==needEuro){
-        throw new Error("Konnte keine vollständige Systembasis wählen.");
-      }
+      const systems=[];
+      for(let i=0;i<k;i++){
+        let tries=0,variant=null;
+        while(tries<50 && !variant){
+          tries++;
+          const baseMain=pickDistinctWeightedDynamic(
+            useStats?mainW:Array(51).fill(1),
+            usedMainCounts,
+            50,
+            needMain
+          );
+          const baseEuro=pickDistinctWeightedDynamic(
+            useStats?euroW:Array(13).fill(1),
+            usedEuroCounts,
+            12,
+            needEuro
+          );
+          if(baseMain.length!==needMain || baseEuro.length!==needEuro) break;
 
-      el("systemBaseInfo").textContent =
-        "Basis: "+baseMain.join(" ")+" | "+baseEuro.join(" ");
-
-      const allMainCombos = combinations(baseMain,5);
-      if(!allMainCombos.length) throw new Error("Keine 5er-Kombinationen gefunden.");
-
-      const allCombos = allMainCombos.map(m=>({main:m,euro:baseEuro.slice()}));
-
-      // Greedy-Auswahl, die Paare & Stats nutzt
-      const coveredPairs = new Set();
-      function pairsOf(main){
-        const res=[];
-        for(let i=0;i<main.length;i++){
-          for(let j=i+1;j<main.length;j++){
-            res.push(main[i]+"-"+main[j]);
-          }
-        }
-        return res;
-      }
-
-      const remaining = allCombos.slice();
-      const chosen = [];
-
-      for(let i=0;i<k && remaining.length;i++){
-        let bestIdx = 0;
-        let bestScore = -1e9;
-        for(let idx=0; idx<remaining.length; idx++){
-          const c = remaining[idx];
-          const p = pairsOf(c.main);
-          let gainPairs = 0;
-          for(const pair of p){
-            if(!coveredPairs.has(pair)) gainPairs++;
-          }
-          let statScore = 0;
-          if(useStats && mainW){
-            statScore = c.main.reduce((s,n)=>s+(mainW[n]||1),0);
-          }
-          let overlapPenalty = 0;
-          if(useMaxDiff && chosen.length){
-            let maxInter = 0;
-            for(const o of chosen){
-              const inter = countIntersection(c.main,o.main);
-              if(inter>maxInter) maxInter = inter;
+          if(useMaxDiff&&systems.length){
+            let ok=true;
+            for(const s of systems){
+              const inter=countIntersection(baseMain,s.main);
+              if(inter>=needMain-1){ok=false;break;}
             }
-            overlapPenalty = maxInter*1.5;
+            if(!ok) continue;
           }
-          const score = gainPairs*3 + statScore - overlapPenalty;
-          if(score>bestScore){
-            bestScore = score;
-            bestIdx = idx;
-          }
+          variant={main:baseMain,euro:baseEuro};
         }
-        const chosenCombo = remaining.splice(bestIdx,1)[0];
-        pairsOf(chosenCombo.main).forEach(p=>coveredPairs.add(p));
-        chosen.push(chosenCombo);
+        if(!variant) break;
+        variant.main.forEach(n=>usedMainCounts[n]++);
+        variant.euro.forEach(e=>usedEuroCounts[e]++);
+        systems.push(variant);
       }
 
-      app.generated = chosen;
+      if(!systems.length) throw new Error("Es konnten keine Systeme erzeugt werden.");
+
+      app.generated=systems;
       renderGenerated();
 
-      const srcRadio = Array.from(document.getElementsByName("vsource")).find(r=>r.value==="gen");
-      if(srcRadio){ srcRadio.checked = true; }
-      el("manualRow").style.display = "none";
+      const srcRadio=Array.from(document.getElementsByName("vsource")).find(r=>r.value==="gen");
+      if(srcRadio) srcRadio.checked=true;
+      el("manualRow").style.display="none";
 
-      setStatus("systemStatus","System-Varianten erzeugt: "+chosen.length+" aus "+allCombos.length+" möglichen Vollsystem-Kombinationen.","ok");
-      setStatus("genStatus","Systemschein-Modus: "+chosen.length+" System-Varianten aktiv.","ok");
+      el("systemBaseInfo").textContent=
+        "Systemtyp "+needMain+"/"+needEuro+" – erzeugt wurden "+systems.length+" Systeme (siehe Liste).";
+
+      setStatus("systemStatus","Systeme erzeugt: "+systems.length+" Stück.","ok");
+      setStatus("genStatus","Systemschein-Modus: "+systems.length+" System-Varianten aktiv.","ok");
     }catch(e){
-      console.error(e);
       setStatus("systemStatus","Fehler im Systemschein: "+e.message,"err");
     }
   }
 
-  /* ===== Analyse ========================================================= */
+  /* ===== Analyse ===== */
 
   function parseManualVariants(text){
-    const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
-    const res = [];
+    const lines=text.split(/\r?\n/).filter(l=>l.trim().length>0);
+    const res=[];
     for(const line of lines){
-      const nums = (line.match(/\d+/g)||[]).map(Number);
+      const nums=(line.match(/\d+/g)||[]).map(Number);
       if(nums.length<5) continue;
-      const arr = nums.slice(-7);
-      const main = arr.slice(0,5);
-      const euro = arr.slice(5,7);
-      if(!main.every(n=>n>=1 && n<=50)) continue;
-      if(euro.length && !euro.every(e=>e>=1 && e<=12)) continue;
-      main.sort((a,b)=>a-b);
-      euro.sort((a,b)=>a-b);
+      const parts=line.split("|");
+      const mainPart=(parts[0]||"").match(/\d+/g)||[];
+      const euroPart=(parts[1]||"").match(/\d+/g)||[];
+      const main=Array.from(new Set(mainPart.map(Number))).filter(n=>n>=1&&n<=50).sort((a,b)=>a-b);
+      const euro=Array.from(new Set(euroPart.map(Number))).filter(e=>e>=1&&e<=12).sort((a,b)=>a-b);
+      if(!main.length) continue;
       res.push({main,euro});
     }
     return res;
@@ -1149,23 +1105,23 @@
       el("analysisWrap").style.display="none";
       return;
     }
-    const src = Array.from(document.getElementsByName("vsource")).find(r=>r.checked)?.value || "gen";
-    let variants = [];
+    const src=Array.from(document.getElementsByName("vsource")).find(r=>r.checked)?.value||"gen";
+    let variants=[];
     if(src==="gen"){
       if(!app.generated.length){
-        setStatus("analysisStatus","Keine generierten Varianten vorhanden (Generator oder Systemschein benutzen).","err");
+        setStatus("analysisStatus","Keine generierten Varianten vorhanden.","err");
         el("analysisWrap").style.display="none";
         return;
       }
-      variants = app.generated.slice();
+      variants=app.generated.slice();
     }else{
-      const text = el("manualInput").value.trim();
+      const text=el("manualInput").value.trim();
       if(!text){
         setStatus("analysisStatus","Bitte Varianten in das Textfeld eintragen.","err");
         el("analysisWrap").style.display="none";
         return;
       }
-      variants = parseManualVariants(text);
+      variants=parseManualVariants(text);
       if(!variants.length){
         setStatus("analysisStatus","Keine gültigen Varianten in der Eingabe gefunden.","err");
         el("analysisWrap").style.display="none";
@@ -1173,39 +1129,39 @@
       }
     }
 
-    const includeEuro = el("analysisIncludeEuro").checked;
+    const includeEuro=el("analysisIncludeEuro").checked;
     setStatus("analysisStatus","Analyse läuft…","info",true);
 
-    const body = el("analysisBody");
-    body.innerHTML = "";
+    const body=el("analysisBody");
+    body.innerHTML="";
 
     variants.forEach((v,idx)=>{
       let h3=0,h4=0,h5=0;
-      const euroMap = {};
+      const euroMap={};
       app.draws.forEach(d=>{
-        const mh = countIntersection(v.main,d.main);
+        const mh=countIntersection(v.main,d.main); // wie viele der 5 Gewinnzahlen im System
         if(mh<3) return;
         if(mh===3) h3++; else if(mh===4) h4++; else if(mh===5) h5++;
         if(includeEuro && v.euro && v.euro.length){
-          const eh = countIntersection(v.euro,d.euro);
-          const key = mh+"+"+eh;
+          const eh=countIntersection(v.euro,d.euro);
+          const key=mh+"+"+eh;
           euroMap[key]=(euroMap[key]||0)+1;
         }
       });
-      let euroTxt = "–";
+      let euroTxt="–";
       if(includeEuro){
-        const parts = Object.keys(euroMap).sort((a,b)=>{
+        const parts=Object.keys(euroMap).sort((a,b)=>{
           const [am,ae]=a.split("+").map(Number);
           const [bm,be]=b.split("+").map(Number);
           if(am!==bm) return bm-am;
           return be-ae;
         }).map(k=>`${k} (${euroMap[k]}×)`);
-        euroTxt = parts.length?parts.join(", "):"–";
+        euroTxt=parts.length?parts.join(", "):"–";
       }
-      const mainStr = v.main.join(" ");
-      const euroStr = v.euro && v.euro.length ? " | "+v.euro.join(" ") : "";
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${idx+1}</td><td>${mainStr}${euroStr}</td><td>${h3}</td><td>${h4}</td><td>${h5}</td><td>${euroTxt}</td>`;
+      const mainStr=v.main.join(" ");
+      const euroStr=v.euro&&v.euro.length?" | "+v.euro.join(" "):"";
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td>${idx+1}</td><td>${mainStr}${euroStr}</td><td>${h3}</td><td>${h4}</td><td>${h5}</td><td>${euroTxt}</td>`;
       body.appendChild(tr);
     });
 
@@ -1213,14 +1169,14 @@
     setStatus("analysisStatus","Analyse für "+variants.length+" Varianten abgeschlossen.","ok");
   }
 
-  /* ===== Init ============================================================ */
+  /* ===== Init ===== */
 
   function initDate(){
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth()+1).padStart(2,"0");
-    const dd = String(d.getDate()).padStart(2,"0");
-    el("drawDate").value = `${yyyy}-${mm}-${dd}`;
+    const d=new Date();
+    const yyyy=d.getFullYear();
+    const mm=String(d.getMonth()+1).padStart(2,"0");
+    const dd=String(d.getDate()).padStart(2,"0");
+    el("drawDate").value=`${yyyy}-${mm}-${dd}`;
   }
 
   function init(){
@@ -1237,10 +1193,10 @@
     el("btnSystemGen").addEventListener("click",systemGenerate);
 
     el("genSystemMode").addEventListener("change",()=>{
-      const on = el("genSystemMode").checked;
-      el("systemCard").style.display = on ? "block" : "none";
+      const on=el("genSystemMode").checked;
+      el("systemCard").style.display=on?"block":"none";
       if(on){
-        setStatus("genStatus","Systemschein-Modus ist aktiv. Nutze unten den System-Button, um Varianten automatisch zu erzeugen.","info");
+        setStatus("genStatus","Systemschein-Modus ist aktiv. Unten auf „System-Varianten automatisch generieren“ klicken.","info");
       }else{
         setStatus("systemStatus","Systemschein-Modus deaktiviert.","info");
       }
@@ -1248,8 +1204,8 @@
 
     document.getElementsByName("vsource").forEach(r=>{
       r.addEventListener("change",()=>{
-        const manual = Array.from(document.getElementsByName("vsource")).find(x=>x.checked)?.value==="manual";
-        el("manualRow").style.display = manual?"block":"none";
+        const manual=Array.from(document.getElementsByName("vsource")).find(x=>x.checked)?.value==="manual";
+        el("manualRow").style.display=manual?"block":"none";
       });
     });
     el("scrollGen").addEventListener("click",()=>{
