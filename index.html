@@ -5,7 +5,7 @@
   <title>Eurojackpot Analyse & Varianten-Tool</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Fallback: JSZip; zusätzlich wird im Code bei Bedarf dynamisch nachgeladen -->
+  <!-- JSZip Fallback -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <style>
@@ -399,8 +399,8 @@
             <button class="btn btn-sm btn-outline" id="btnExportCsv">Als CSV exportieren</button>
           </div>
           <div class="note">
-            Im <strong>Systemschein-Modus</strong> werden Varianten aus deinen Systemzahlen erzeugt.
-            Der Button oben arbeitet dann nur im Normalmodus – für System bitte den System-Button nutzen.
+            Im <strong>Systemschein-Modus</strong> werden Varianten vollständig automatisch aus Archiv &amp; Statistik erzeugt.
+            Du musst keine Zahlen eingeben.
           </div>
         </div>
 
@@ -467,7 +467,7 @@
         <div class="card-header">
           <div>
             <h2>Systemschein</h2>
-            <div class="sub">System-Spiel (z.B. 7/2) → reduzierte, sinnvoll verteilte Varianten.</div>
+            <div class="sub">System-Spiel (z.B. 7/2) – Zahlen werden automatisch aus Archiv &amp; Statistik gewählt.</div>
           </div>
           <span class="chip">System</span>
         </div>
@@ -475,37 +475,30 @@
           <div class="group">
             <label>Systemtyp</label>
             <select id="systemSpec">
-              <option value="7-2" selected>7/2 (Standard-System)</option>
               <option value="6-2">6/2</option>
+              <option value="7-2" selected>7/2</option>
               <option value="8-2">8/2</option>
               <option value="9-2">9/2</option>
               <option value="10-2">10/2</option>
             </select>
             <div class="note">
-              Format: <strong>Hauptzahlen / Eurozahlen</strong>. Es werden alle 5er-Kombinationen aus deinen Hauptzahlen gebildet
-              und daraus eine Teilmenge gemäß „Anzahl Varianten“ oben gewählt.
+              Hauptzahlen/Eurozahlen. Beispiel: 7/2 bedeutet 7 Hauptzahlen &amp; 2 Eurozahlen als Systembasis,
+              daraus werden automatisch sinnvolle 5er-Tipps erzeugt.
             </div>
           </div>
           <div class="group">
-            <label>Systemzahlen (Hauptzahlen | Eurozahlen)</label>
-            <textarea id="systemBaseInput" placeholder="Beispiel für 7/2:
-1 5 12 20 33 41 48 | 3 7"></textarea>
-            <div class="note">
-              Erwartet werden genau so viele Hauptzahlen und Eurozahlen,
-              wie im gewählten System angegeben sind (z.B. 7 Hauptzahlen und 2 Eurozahlen bei 7/2).
-              Die Anzahl der erzeugten Tipps entspricht dem Feld „Anzahl Varianten“ oben.
-            </div>
+            <label>System-Basis (automatisch gewählt)</label>
+            <div id="systemBaseInfo" class="note">Noch kein System erzeugt.</div>
           </div>
         </div>
         <div class="row">
-          <button class="btn btn-sm" id="btnSystemGen">System-Varianten erzeugen (ersetzt aktuelle Varianten)</button>
+          <button class="btn btn-sm" id="btnSystemGen">System-Varianten automatisch generieren</button>
           <div id="systemStatus" class="status"></div>
         </div>
         <div class="note">
-          Schalter wie <strong>Hot/Cold &amp; Bereiche</strong> und
-          <strong>Abstand zwischen Varianten maximieren</strong> wirken auch hier:
-          die Auswahl der System-Varianten versucht, möglichst viele unterschiedliche Zahlenpaare
-          und eine gute Verteilung über das System abzudecken.
+          Die Systemzahlen und Varianten werden aus den letzten Ziehungen,
+          Hot/Cold-Verteilung und den Schaltern im Generator abgeleitet.
+          Du musst keine eigenen Zahlen eingeben.
         </div>
       </div>
 
@@ -526,7 +519,7 @@
   const STORAGE_KEY = "ej_archive_v1";
 
   const app = {
-    draws: [],   // {date: "YYYY-MM-DD" | null, main:[5], euro:[2]}
+    draws: [],   // {date:"YYYY-MM-DD"|null, main:[5], euro:[2]}
     generated: [],
     stats: null
   };
@@ -566,8 +559,8 @@
       }));
       app.stats = null;
       setStatus("archiveStatus","Archiv aus vorheriger Sitzung geladen: "+app.draws.length+" Ziehungen.","ok");
-      setStatus("statsStatus","Archiv wiederhergestellt. Wähle einen Zeitraum und klicke auf „Statistik berechnen“.","ok");
-      console.log("[Archiv] restored from storage", app.draws.length);
+      setStatus("statsStatus","Archiv wiederhergestellt. Zeitraum wählen & „Statistik berechnen“ klicken.","ok");
+      console.log("[Archiv] restored", app.draws.length);
       return true;
     }catch(e){
       console.warn("Konnte Archiv aus localStorage nicht laden:",e);
@@ -698,7 +691,7 @@
       const text = await fetchWithProxies(ARCHIVE_URL);
       parseArchiveText(text);
       setStatus("archiveStatus","Archiv geladen: "+app.draws.length+" Ziehungen.","ok");
-      setStatus("statsStatus","Archiv geladen. Wähle einen Zeitraum und klicke auf „Statistik berechnen“.","ok");
+      setStatus("statsStatus","Archiv geladen. Zeitraum wählen & „Statistik berechnen“ klicken.","ok");
     }catch(e){
       console.error(e);
       setStatus("archiveStatus","Archiv konnte nicht automatisch geladen werden: "+e.message,"err");
@@ -732,7 +725,7 @@
           throw new Error("Dateityp nicht unterstützt.");
         }
         setStatus("archiveStatus","Archiv geladen: "+app.draws.length+" Ziehungen.","ok");
-        setStatus("statsStatus","Archiv geladen. Wähle einen Zeitraum und klicke auf „Statistik berechnen“.","ok");
+        setStatus("statsStatus","Archiv geladen. Zeitraum wählen & „Statistik berechnen“ klicken.","ok");
       }catch(e){
         console.error(e);
         setStatus("archiveStatus","Fehler beim Lesen der Datei: "+e.message,"err");
@@ -870,6 +863,15 @@
       const share = stats.ranges[idx]/totalRange;
       mainW[n]*=0.5+share*1.5;
     }
+    // Euro-Gewichte aus Archiv
+    const euroFreq = Array(13).fill(0);
+    stats.subset.forEach(d=>{
+      d.euro.forEach(e=>{ if(e>=1 && e<=12) euroFreq[e]++; });
+    });
+    const totalEuro = euroFreq.reduce((a,b)=>a+b,0)||1;
+    for(let e=1;e<=12;e++){
+      euroW[e] = 0.5 + (euroFreq[e]/totalEuro)*1.5;
+    }
     return {mainW,euroW};
   }
 
@@ -913,7 +915,7 @@
   function generateVariants(){
     const systemMode = el("genSystemMode").checked;
     if(systemMode){
-      setStatus("genStatus","Systemschein-Modus ist aktiv – bitte unten den Button „System-Varianten erzeugen“ verwenden.","warn");
+      setStatus("genStatus","Systemschein-Modus ist aktiv – bitte den System-Button unten verwenden.","warn");
       return;
     }
 
@@ -931,7 +933,7 @@
     setStatus("genStatus","Varianten werden generiert…","info",true);
 
     const stats = useStats ? ensureStatsForGen() : null;
-    const {mainW,euroW} = buildMainEuroWeightsFromStats(stats);
+    const {mainW,euroW} = buildMainEuroWeightsFromStats(stats || {ranges:[1,1,1,1,1],subset:[],hot:new Set(),cold:new Set()});
 
     const variants = [];
     const maxAttempts = 40;
@@ -950,6 +952,15 @@
     app.generated = variants;
     renderGenerated();
     setStatus("genStatus","Es wurden "+variants.length+" Varianten erzeugt.","ok");
+  }
+
+  function triggerDownload(blob,name){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href=url; a.download=name;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   function exportVariants(type){
@@ -974,15 +985,6 @@
     }
   }
 
-  function triggerDownload(blob,name){
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href=url; a.download=name;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
   /* ===== Systemschein ==================================================== */
 
   function combinations(arr,k){
@@ -999,48 +1001,65 @@
     return res;
   }
 
-  function parseSystemBase(){
-    const raw = el("systemBaseInput").value.trim();
-    if(!raw){
-      throw new Error("Bitte Systemzahlen eingeben (Hauptzahlen und Eurozahlen).");
+  function pickDistinctWeighted(weights,count){
+    const used = new Set();
+    const picked = [];
+    for(let i=0;i<count;i++){
+      let n = weightedPick(weights);
+      let safecount = 0;
+      while(n && used.has(n) && safecount<100){
+        n = weightedPick(weights);
+        safecount++;
+      }
+      if(!n || used.has(n)){
+        for(let j=1;j<weights.length;j++){
+          if(!used.has(j)){ n=j; break; }
+        }
+      }
+      if(!n) break;
+      used.add(n);
+      picked.push(n);
     }
-    const parts = raw.split("|");
-    const mainPart = (parts[0]||"").match(/\d+/g)||[];
-    const euroPart = (parts[1]||"").match(/\d+/g)||[];
-    const mainNums = Array.from(new Set(mainPart.map(Number))).filter(n=>n>=1 && n<=50).sort((a,b)=>a-b);
-    const euroNums = Array.from(new Set(euroPart.map(Number))).filter(n=>n>=1 && n<=12).sort((a,b)=>a-b);
-    return {mainNums,euroNums};
+    picked.sort((a,b)=>a-b);
+    return picked;
   }
 
   function systemGenerate(){
     try{
-      const spec = el("systemSpec").value; // z.B. "7-2"
-      const [needMainStr, needEuroStr] = spec.split("-");
-      const needMain = Number(needMainStr), needEuro = Number(needEuroStr);
-      const {mainNums,euroNums} = parseSystemBase();
+      if(!app.draws.length){
+        setStatus("systemStatus","Für den Systemschein muss das Archiv geladen sein.","err");
+        return;
+      }
+      const stats = ensureStatsForGen();
+      const {mainW,euroW} = buildMainEuroWeightsFromStats(stats || {ranges:[1,1,1,1,1],subset:[],hot:new Set(),cold:new Set()});
+      const useStats = el("genUseStats").checked;
+      const useMaxDiff = el("genMaxDiff").checked;
 
-      if(mainNums.length !== needMain){
-        throw new Error("Es wurden "+mainNums.length+" Hauptzahlen eingegeben, erwartet werden "+needMain+".");
-      }
-      if(euroNums.length !== needEuro){
-        throw new Error("Es wurden "+euroNums.length+" Eurozahlen eingegeben, erwartet werden "+needEuro+".");
-      }
+      const spec = el("systemSpec").value;
+      const [needMainStr, needEuroStr] = spec.split("-");
+      const needMain = Number(needMainStr);
+      const needEuro = Number(needEuroStr);
 
       const k = Math.max(1,Math.min(50,Number(el("numVariants").value)||1));
       el("numVariants").value = k;
 
-      // Alle 5er-Kombinationen aus den System-Hauptzahlen:
-      const allMainCombos = combinations(mainNums,5);
-      const allCombos = allMainCombos.map(m=>({main:m,euro:euroNums.slice()}));
+      // System-Basis-Zahlen automatisch wählen
+      const baseMain = pickDistinctWeighted(useStats?mainW:Array(51).fill(1),needMain);
+      const baseEuro = pickDistinctWeighted(useStats?euroW:Array(13).fill(1),needEuro);
 
-      if(!allCombos.length) throw new Error("Keine 5er-Kombinationen aus den Systemzahlen gefunden.");
+      if(baseMain.length!==needMain || baseEuro.length!==needEuro){
+        throw new Error("Konnte keine vollständige Systembasis wählen.");
+      }
 
-      const useStats = el("genUseStats").checked;
-      const useMaxDiff = el("genMaxDiff").checked;
-      const stats = useStats ? ensureStatsForGen() : null;
-      const {mainW} = buildMainEuroWeightsFromStats(stats);
+      el("systemBaseInfo").textContent =
+        "Basis: "+baseMain.join(" ")+" | "+baseEuro.join(" ");
 
-      // Score-Funktion: neue Paare + Stat-Gewichtung - Überschneidungs-Penalty
+      const allMainCombos = combinations(baseMain,5);
+      if(!allMainCombos.length) throw new Error("Keine 5er-Kombinationen gefunden.");
+
+      const allCombos = allMainCombos.map(m=>({main:m,euro:baseEuro.slice()}));
+
+      // Greedy-Auswahl, die Paare & Stats nutzt
       const coveredPairs = new Set();
       function pairsOf(main){
         const res=[];
@@ -1092,12 +1111,11 @@
       app.generated = chosen;
       renderGenerated();
 
-      // Analyse auf "aktuell generierte" stellen
       const srcRadio = Array.from(document.getElementsByName("vsource")).find(r=>r.value==="gen");
       if(srcRadio){ srcRadio.checked = true; }
       el("manualRow").style.display = "none";
 
-      setStatus("systemStatus","System-Varianten erzeugt: "+chosen.length+" aus insgesamt "+allCombos.length+" möglichen Vollsystem-Tipps.","ok");
+      setStatus("systemStatus","System-Varianten erzeugt: "+chosen.length+" aus "+allCombos.length+" möglichen Vollsystem-Kombinationen.","ok");
       setStatus("genStatus","Systemschein-Modus: "+chosen.length+" System-Varianten aktiv.","ok");
     }catch(e){
       console.error(e);
@@ -1208,8 +1226,6 @@
   function init(){
     initDate();
     setupFileInput();
-
-    // Archiv aus vorheriger Sitzung versuchen zu laden
     restoreArchive();
 
     el("btnLoadRemote").addEventListener("click",loadArchiveRemote);
@@ -1220,12 +1236,11 @@
     el("btnAnalyze").addEventListener("click",analyze);
     el("btnSystemGen").addEventListener("click",systemGenerate);
 
-    // Systemschein-Bereich ein-/ausblenden
     el("genSystemMode").addEventListener("change",()=>{
       const on = el("genSystemMode").checked;
       el("systemCard").style.display = on ? "block" : "none";
       if(on){
-        setStatus("genStatus","Systemschein-Modus ist aktiv. Nutze unten den System-Button, um Varianten zu erzeugen.","info");
+        setStatus("genStatus","Systemschein-Modus ist aktiv. Nutze unten den System-Button, um Varianten automatisch zu erzeugen.","info");
       }else{
         setStatus("systemStatus","Systemschein-Modus deaktiviert.","info");
       }
