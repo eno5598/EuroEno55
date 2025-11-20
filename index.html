@@ -337,7 +337,7 @@
           <div class="card-header">
             <div>
               <h2>Varianten-Generator</h2>
-              <div class="sub">Diversifizierte Varianten mit Statistikgewichtung.</div>
+              <div class="sub">Diversifizierte Varianten mit Statistikgewichtung oder Systemschein.</div>
             </div>
             <span class="chip">Smart-Generator</span>
           </div>
@@ -353,7 +353,15 @@
           </div>
           <div class="row">
             <div class="group">
-              <label>Optionen</label>
+              <label>Modus</label>
+              <label class="switch">
+                <input id="genSystemMode" type="checkbox">
+                <span class="sw-pill"><span class="sw-thumb"></span></span>
+                <span>Systemschein-Modus aktivieren</span>
+              </label>
+            </div>
+            <div class="group">
+              <label>Optionen (Standardmodus)</label>
               <label class="switch">
                 <input id="genIncludeEuro" type="checkbox" checked>
                 <span class="sw-pill"><span class="sw-thumb"></span></span>
@@ -364,9 +372,6 @@
                 <span class="sw-pill"><span class="sw-thumb"></span></span>
                 <span>Hot/Cold &amp; Bereiche nutzen</span>
               </label>
-            </div>
-            <div class="group">
-              <label>Diversität</label>
               <label class="switch">
                 <input id="genNoDup" type="checkbox" checked>
                 <span class="sw-pill"><span class="sw-thumb"></span></span>
@@ -380,7 +385,7 @@
             </div>
           </div>
           <div class="row">
-            <button class="btn btn-sm" id="btnGen">Varianten generieren</button>
+            <button class="btn btn-sm" id="btnGen">Varianten generieren (Standardmodus)</button>
             <div id="genStatus" class="status"></div>
           </div>
           <div class="tbl-wrap" id="genTableWrap" style="display:none">
@@ -393,7 +398,10 @@
             <button class="btn btn-sm btn-outline" id="btnExportTxt">Als TXT exportieren</button>
             <button class="btn btn-sm btn-outline" id="btnExportCsv">Als CSV exportieren</button>
           </div>
-          <div class="note">Gewichtungen verändern die Auswahlverteilung, aber nicht die mathematische Ziehungswahrscheinlichkeit.</div>
+          <div class="note">
+            Im <strong>Systemschein-Modus</strong> werden Varianten aus deinen Systemzahlen erzeugt.
+            Der Button oben arbeitet dann nur im Normalmodus – für System bitte den System-Button nutzen.
+          </div>
         </div>
 
         <!-- ANALYSE -->
@@ -453,6 +461,61 @@
           <div class="note">Gezählt werden alle Ziehungen, in denen eine Variante mindestens drei Hauptzahlen getroffen hat.</div>
         </div>
       </div>
+
+      <!-- SYSTEMSCHEIN-BEREICH -->
+      <div class="card" id="systemCard" style="margin-top:14px;display:none">
+        <div class="card-header">
+          <div>
+            <h2>Systemschein</h2>
+            <div class="sub">System-Spiel (z.B. 7/2) → reduzierte, sinnvoll verteilte Varianten.</div>
+          </div>
+          <span class="chip">System</span>
+        </div>
+        <div class="row">
+          <div class="group">
+            <label>Systemtyp</label>
+            <select id="systemSpec">
+              <option value="7-2" selected>7/2 (Standard-System)</option>
+              <option value="6-2">6/2</option>
+              <option value="8-2">8/2</option>
+              <option value="9-2">9/2</option>
+              <option value="10-2">10/2</option>
+            </select>
+            <div class="note">
+              Format: <strong>Hauptzahlen / Eurozahlen</strong>. Es werden alle 5er-Kombinationen aus deinen Hauptzahlen gebildet,
+              aber nur so viele Tipps ausgewählt, wie du unten angibst.
+            </div>
+          </div>
+          <div class="group">
+            <label>Anzahl System-Varianten</label>
+            <input type="number" id="systemVariantCount" value="3" min="1" max="50">
+            <div class="note">
+              Beispiel: Bei System 7/2 gibt es insgesamt 21 Vollsystem-Tipps.
+              Hier kannst du z.B. nur <strong>3</strong> sinnvolle, breit gestreute Varianten daraus erzeugen lassen.
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="group">
+            <label>Systemzahlen (Hauptzahlen | Eurozahlen)</label>
+            <textarea id="systemBaseInput" placeholder="Beispiel für 7/2:
+1 5 12 20 33 41 48 | 3 7"></textarea>
+            <div class="note">
+              Erwartet werden genau so viele Hauptzahlen und Eurozahlen,
+              wie im gewählten System angegeben sind (z.B. 7 Hauptzahlen und 2 Eurozahlen bei 7/2).
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn btn-sm" id="btnSystemGen">System-Varianten erzeugen (ersetzt aktuelle Varianten)</button>
+          <div id="systemStatus" class="status"></div>
+        </div>
+        <div class="note">
+          Die Auswahl der System-Varianten versucht, möglichst viele unterschiedliche <strong>Zahlenpaare</strong> abzudecken.
+          Dadurch werden die Tipps über dein System „breit“ verteilt (statt komplett zufällig).
+        </div>
+      </div>
+
     </section>
   </main>
 
@@ -555,14 +618,13 @@
     const draws = [];
 
     for(const line of lines){
-      if(/tag\s+monat\s+jahr/i.test(line)) continue;          // Kopfzeile
+      if(/tag\s+monat\s+jahr/i.test(line)) continue;
       if(/ZahlA1/i.test(line)) continue;
 
       const nums = (line.match(/\d+/g)||[]).map(Number);
       if(nums.length < 7) continue;
 
       // Lotto-Bayern-Format: Tag Monat Jahr + 5 Hauptzahlen + 2 Eurozahlen
-      // -> Wir nutzen immer die letzten 7 Zahlen als 5 Haupt + 2 Euro
       const last7 = nums.slice(-7);
       if(last7.length !== 7) continue;
       const main = last7.slice(0,5);
@@ -574,7 +636,6 @@
       main.sort((a,b)=>a-b);
       euro.sort((a,b)=>a-b);
 
-      // Datum aus den ersten 3 Zahlen (Tag, Monat, Jahr)
       let date = null;
       if(nums.length >= 3){
         const d = nums[0], m = nums[1], y = nums[2];
@@ -710,7 +771,7 @@
     setStatus("statsStatus","Statistik für die letzten "+subset.length+" Ziehungen berechnet.","ok");
   }
 
-  /* ===== Generator ======================================================= */
+  /* ===== Generator (Standard) ============================================ */
 
   function weightedPick(weights){
     let sum = 0;
@@ -807,6 +868,12 @@
   }
 
   function generateVariants(){
+    const systemMode = el("genSystemMode").checked;
+    if(systemMode){
+      setStatus("genStatus","Systemschein-Modus ist aktiv – bitte unten den Button „System-Varianten erzeugen“ verwenden.","warn");
+      return;
+    }
+
     const count = Math.max(1,Math.min(500,Number(el("numVariants").value)||1));
     el("numVariants").value = count;
     if(!app.draws.length){
@@ -882,6 +949,113 @@
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  /* ===== Systemschein ==================================================== */
+
+  function combinations(arr,k){
+    const res=[];
+    function backtrack(start,combo){
+      if(combo.length===k){res.push(combo.slice());return;}
+      for(let i=start;i<arr.length;i++){
+        combo.push(arr[i]);
+        backtrack(i+1,combo);
+        combo.pop();
+      }
+    }
+    backtrack(0,[]);
+    return res;
+  }
+
+  function parseSystemBase(){
+    const raw = el("systemBaseInput").value.trim();
+    if(!raw){
+      throw new Error("Bitte Systemzahlen eingeben (Hauptzahlen und Eurozahlen).");
+    }
+    const parts = raw.split("|");
+    const mainPart = (parts[0]||"").match(/\d+/g)||[];
+    const euroPart = (parts[1]||"").match(/\d+/g)||[];
+    const mainNums = Array.from(new Set(mainPart.map(Number))).filter(n=>n>=1 && n<=50).sort((a,b)=>a-b);
+    const euroNums = Array.from(new Set(euroPart.map(Number))).filter(n=>n>=1 && n<=12).sort((a,b)=>a-b);
+    return {mainNums,euroNums};
+  }
+
+  function systemGenerate(){
+    try{
+      if(!app.draws.length){
+        setStatus("systemStatus","Bitte zuerst das Archiv laden (für Statistik & Analyse). Für das System selbst ist es optional, aber empfohlen.","warn");
+      }
+      const spec = el("systemSpec").value; // z.B. "7-2"
+      const [needMainStr, needEuroStr] = spec.split("-");
+      const needMain = Number(needMainStr), needEuro = Number(needEuroStr);
+      const {mainNums,euroNums} = parseSystemBase();
+
+      if(mainNums.length !== needMain){
+        throw new Error("Es wurden "+mainNums.length+" Hauptzahlen eingegeben, erwartet werden "+needMain+".");
+      }
+      if(euroNums.length !== needEuro){
+        throw new Error("Es wurden "+euroNums.length+" Eurozahlen eingegeben, erwartet werden "+needEuro+".");
+      }
+
+      const k = Math.max(1,Math.min(50,Number(el("systemVariantCount").value)||1));
+      el("systemVariantCount").value = k;
+
+      // Alle 5er-Kombinationen aus den System-Hauptzahlen:
+      const allMainCombos = combinations(mainNums,5);
+      // Für Euro nehmen wir beim x/2-System einfach beide Eurozahlen in jeden Tipp:
+      const allCombos = allMainCombos.map(m=>({main:m,euro:euroNums.slice()}));
+
+      if(k >= allCombos.length){
+        app.generated = allCombos;
+        renderGenerated();
+        setStatus("systemStatus","Es gibt insgesamt "+allCombos.length+" Vollsystem-Kombinationen – alle wurden übernommen.","ok");
+        setStatus("genStatus","Systemschein: Vollsystem mit "+allCombos.length+" Varianten übernommen.","ok");
+        return;
+      }
+
+      // Greedy-Auswahl, die möglichst viele unterschiedliche Zahlenpaare abdeckt:
+      const coveredPairs = new Set();
+      function pairsOf(main){
+        const res=[];
+        for(let i=0;i<main.length;i++){
+          for(let j=i+1;j<main.length;j++){
+            res.push(main[i]+"-"+main[j]);
+          }
+        }
+        return res;
+      }
+
+      const remaining = allCombos.slice();
+      const chosen = [];
+
+      for(let i=0;i<k && remaining.length;i++){
+        let bestIdx = 0;
+        let bestScore = -1;
+        for(let idx=0; idx<remaining.length; idx++){
+          const c = remaining[idx];
+          const p = pairsOf(c.main);
+          let gain = 0;
+          for(const pair of p){
+            if(!coveredPairs.has(pair)) gain++;
+          }
+          if(gain>bestScore){
+            bestScore = gain;
+            bestIdx = idx;
+          }
+        }
+        const chosenCombo = remaining.splice(bestIdx,1)[0];
+        pairsOf(chosenCombo.main).forEach(p=>coveredPairs.add(p));
+        chosen.push(chosenCombo);
+      }
+
+      app.generated = chosen;
+      renderGenerated();
+      setStatus("systemStatus","System-Varianten erzeugt: "+chosen.length+" aus insgesamt "+allCombos.length+" möglichen Vollsystem-Tipps.","ok");
+      setStatus("genStatus","Systemschein-Modus: "+chosen.length+" System-Varianten aktiv.","ok");
+    }catch(e){
+      console.error(e);
+      setStatus("systemStatus","Fehler im Systemschein: "+e.message,"err");
+    }
   }
 
   /* ===== Analyse ========================================================= */
@@ -994,6 +1168,19 @@
     el("btnExportTxt").addEventListener("click",()=>exportVariants("txt"));
     el("btnExportCsv").addEventListener("click",()=>exportVariants("csv"));
     el("btnAnalyze").addEventListener("click",analyze);
+    el("btnSystemGen").addEventListener("click",systemGenerate);
+
+    // Systemschein-Bereich ein-/ausblenden
+    el("genSystemMode").addEventListener("change",()=>{
+      const on = el("genSystemMode").checked;
+      el("systemCard").style.display = on ? "block" : "none";
+      if(on){
+        setStatus("genStatus","Systemschein-Modus ist aktiv. Nutze den System-Button unten, um Varianten zu erzeugen.","info");
+      }else{
+        setStatus("systemStatus","Systemschein-Modus deaktiviert.","info");
+      }
+    });
+
     document.getElementsByName("vsource").forEach(r=>{
       r.addEventListener("change",()=>{
         const manual = Array.from(document.getElementsByName("vsource")).find(x=>x.checked)?.value==="manual";
